@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>稿件库 · 大号自媒体工作台</title>
+<link rel="stylesheet" href="style.css?v=4">
+<style>
+  .quick-add { display: flex; gap: 10px; margin-bottom: 14px; }
+  .quick-add input {
+    flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border);
+    font-size: 14px; background: var(--panel-solid); color: var(--text);
+  }
+  .add-btn { padding: 12px 22px; font-weight: 600; color: #fff; background: linear-gradient(135deg,#2f6f4f,#3d8b63);
+    border: none; border-radius: 12px; cursor: pointer; white-space: nowrap; }
+  .add-btn:disabled { opacity: .5; }
+  .topic-card { background: var(--panel-solid); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 16px; margin-bottom: 12px; }
+  .topic-title { font-weight: 700; font-size: 15px; line-height: 1.4; }
+  .topic-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 7px; font-size: 12px; }
+  .badge { padding: 2px 9px; border-radius: 7px; font-size: 12px; }
+  .b-line { background: var(--bg-tint); color: var(--accent-deep,#2f6f4f); }
+  .b-fmt { background: #fff3cd; color: #8a6d00; cursor: help; }
+  .b-likes { background: #fde8e8; color: #b3261e; }
+  .plat-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .plat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 8px; font-size: 12px; color: #fff; }
+  .pc-xhs { background: #fe2c55; } .pc-x { background: #111; } .pc-threads { background: #0a7cff; } .pc-douyin { background: #161823; }
+  .st-none { opacity: .38; }
+  .st-dot { font-size: 10px; }
+  .topic-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .act-btn { padding: 7px 16px; font-size: 13px; border-radius: 9px; border: 1px solid var(--border);
+    background: var(--bg-tint); cursor: pointer; color: var(--text); }
+  .act-btn:hover { background: var(--accent-soft,#e3efe7); }
+  .act-btn.primary { background: linear-gradient(135deg,#2f6f4f,#3d8b63); color: #fff; border: none; font-weight: 600; }
+  .act-btn:disabled { opacity: .5; cursor: wait; }
+  .edit-area { margin-top: 10px; }
+  .edit-area textarea { width: 100%; box-sizing: border-box; min-height: 140px; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 10px; font-size: 13px; line-height: 1.6;
+    font-family: inherit; color: var(--text); background: var(--bg); }
+  .pub-res { margin-top: 8px; font-size: 12px; color: var(--dim); }
+  .group-label { font-size: 11px; color: var(--dim); margin: 18px 0 8px; font-weight: 600; letter-spacing: .04em; }
+  .status-line { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px;
+    background: var(--accent-soft,#e3efe7); color: var(--accent-deep,#2f6f4f); font-size: 13px; margin-bottom: 14px; }
+  .status-line.err { background: #fde8e8; color: #b3261e; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--accent-deep,#2f6f4f); border-top-color: transparent;
+    border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0; }
+  details.materials-box { margin-bottom: 16px; background: var(--panel-solid); border: 1px solid var(--border);
+    border-radius: 14px; padding: 10px 16px; }
+  details.materials-box summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+  .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1d1d1f; color: #fff;
+    padding: 10px 22px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 99; max-width: 80vw; }
+  .toast.show { opacity: .92; }
+  .trend-item { background: var(--panel-solid); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+  .muted { color: var(--dim); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">Jocelyn <span>·</span> 自媒体工作台</div>
+  <nav>
+    <a href="index.html" class="active">稿件库</a>
+    <a href="studio.html">排期 · 四平台</a>
+    <a href="analytics.html">数据分析</a>
+  </nav>
+  <div class="account-switch">
+    账号 <select id="accountSel"></select>
+  </div>
+</div>
+
+<div class="content" style="padding:24px 28px;max-width:980px;margin:0 auto;">
+
+  <div class="section-title">稿件库</div>
+  <div class="section-sub">所有选题一个卡片：一键生成各平台终稿 → 卡片上直接发布（小红书手动）。没有多余流程。</div>
+
+  <div class="quick-add">
+    <input id="quickTopic" placeholder="输入新选题，回车加入稿件库 → 出现在待发布队列">
+    <button id="quickAddBtn" class="add-btn">+ 添加选题</button>
+  </div>
+
+  <div id="statusLine" class="status-line" style="display:none;">
+    <span id="statusSpinner" class="spinner" style="display:none;"></span>
+    <span id="statusText"></span>
+  </div>
+
+  <details class="materials-box">
+    <summary>素材箱（参考材料 / 商单 brief，可选）</summary>
+    <div style="margin-top:10px;">
+      <div class="quick-add">
+        <input id="matTitle" placeholder="素材标题" style="flex:0 0 220px;">
+        <input id="matContent" placeholder="粘贴参考内容（对标笔记 / brief / 灵感）">
+        <button id="matAddBtn" class="act-btn">存入</button>
+      </div>
+      <div id="matList"></div>
+    </div>
+  </details>
+
+  <div class="group-label">📥 待发布队列（有平台还没发的选题 · 同步优先级见「排期 · 四平台」页）</div>
+  <div id="queueList"></div>
+
+  <div class="group-label">✅ 已发布（小红书原帖 + 各平台同步进度）</div>
+  <div id="publishedList"></div>
+
+  <div class="group-label">🔥 趋势灵感（点「换一批」重新生成）</div>
+  <div id="trendList" class="muted" style="font-size:13px;">加载中…</div>
+  <button id="trendRefresh" class="act-btn" style="margin-top:6px;">换一批</button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const PLAT_CLS = { "小红书": "pc-xhs", "X": "pc-x", "Threads": "pc-threads", "抖音": "pc-douyin",
+                   "公众号": "pc-xhs", "知乎": "pc-x", "即刻": "pc-threads" };
+let PLATFORMS = ["小红书", "X", "Threads", "抖音"];   // 按账号切换
+const ACCOUNT_PLATFORMS = {
+  "持穗Rohini": ["公众号", "知乎", "即刻", "小红书"],
+};
+let account = "Jocelyn";
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2600);
+}
+function setStatus(text, loading, isErr) {
+  $("statusLine").style.display = text ? "flex" : "none";
+  $("statusLine").classList.toggle("err", !!isErr);
+  $("statusSpinner").style.display = loading ? "block" : "none";
+  $("statusText").textContent = text;
+}
+function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : s; return d.innerHTML; }
+
+async function api(url, opts) {
+  const r = await fetch(url, opts);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || ("HTTP " + r.status));
+  return d;
+}
+
+// ---------- 聚合：同一选题的多个平台稿合并成一张卡 ----------
+function aggregate(posts) {
+  const map = new Map();
+  for (const p of posts) {
+    const key = p.source_post_id || p.group_id || p.topic || p.title || p.id;
+    if (!map.has(key)) {
+      map.set(key, {
+        key, title: p.topic || p.title, line: p.content_line || "",
+        advice: p.format_advice || null, xhsMetrics: p.xhs_metrics || null,
+        originalId: p.group_id ? null : p.id,
+        originalBody: p.group_id ? "" : (p.body || ""),
+        groupIds: new Set(), drafts: {}, isXhsSync: p.source === "xhs_sync",
+        anyPublished: false,
+      });
+    }
+    const t = map.get(key);
+    if (p.group_id) t.groupIds.add(p.group_id);
+    const plat = p.platform || "小红书";
+    t.drafts[plat] = p;
+    if (p.xhs_metrics) t.xhsMetrics = p.xhs_metrics;
+    if (p.format_advice) t.advice = p.format_advice;
+    if (p.status === "已发布") t.anyPublished = true;
+    if (!t.line && p.content_line) t.line = p.content_line;
+    if (!t.originalId && !p.group_id) { t.originalId = p.id; t.originalBody = p.body || ""; }
+  }
+  return [...map.values()];
+}
+
+// ---------- 渲染 ----------
+function platChip(plat, draft) {
+  const status = draft ? draft.status : "无稿";
+  const cls = status === "无稿" ? "st-none" : "";
+  const dot = status === "已发布" ? "●" : (status === "无稿" ? "○" : "◐");
+  let pubBtn = "";
+  if (draft && status !== "已发布" && plat !== "小红书") {
+    pubBtn = ` <button class="act-btn" style="padding:2px 10px;font-size:11px;" onclick="publishDraft('${draft.id}','${plat}',this)">发布</button>`;
+  }
+  return `<span class="plat-chip ${PLAT_CLS[plat]} ${cls}">${plat} <span class="st-dot">${dot}</span> ${status}${pubBtn}</span>`;
+}
+
+function cardHtml(t) {
+  const likes = t.xhsMetrics && t.xhsMetrics.likes ? `<span class="badge b-likes" title="小红书真实数据（MCP同步）">小红书 赞 ${t.xhsMetrics.likes}${t.xhsMetrics.collects != null ? " · 藏 " + t.xhsMetrics.collects : ""}</span>` : "";
+  const advice = t.advice ? `<span class="badge b-fmt" title="${esc(t.advice.reason)}">建议：${t.advice.recommend}</span>` : "";
+  const chips = PLATFORMS.map(p => platChip(p, t.drafts[p])).join("");
+  const missing = PLATFORMS.filter(p => !t.drafts[p]);
+  const groupId = [...t.groupIds][0];
+  const genLabel = missing.length === 0 ? "⚡ 重新生成全部" : (missing.length === 4 ? "⚡ 一键生成四平台终稿" : `⚡ 补齐 ${missing.join("/")}`);
+  const viewBtn = groupId ? `<a class="act-btn" style="text-decoration:none;" href="studio.html?group=${groupId}">查看/编辑终稿</a>` : "";
+  return `<div class="topic-card" id="card-${t.key}">
+    <div class="topic-title">${esc(t.title)}</div>
+    <div class="topic-meta">
+      ${t.line ? `<span class="badge b-line">${t.line}</span>` : ""}
+      ${advice} ${likes}
+    </div>
+    <div class="plat-row">${chips}</div>
+    <div class="pub-res" id="pubres-${t.key}"></div>
+    <div class="topic-actions">
+      <button class="act-btn primary" onclick="generateFor('${t.key}',this)">${genLabel}</button>
+      ${viewBtn}
+      <button class="act-btn" onclick="toggleEdit('${t.key}')">编辑原稿</button>
+      <button class="act-btn" style="color:#b3261e;" onclick="delTopic('${t.key}')">删除</button>
+    </div>
+    <div class="edit-area" id="edit-${t.key}" style="display:none;"></div>
+  </div>`;
+}
+
+function render(posts) {
+  const topics = aggregate(posts);
+  const queue = topics.filter(t => !t.anyPublished);
+  const published = topics.filter(t => t.anyPublished);
+  $("queueList").innerHTML = queue.length ? queue.map(cardHtml).join("")
+    : '<div class="muted" style="font-size:13px;">队列空 — 在上方输入新选题</div>';
+  $("publishedList").innerHTML = published.length ? published.map(cardHtml).join("")
+    : '<div class="muted" style="font-size:13px;">暂无已发布</div>';
+}
+
+async function refresh() {
+  try {
+    const posts = await api("/api/posts?account=" + encodeURIComponent(account));
+    render(posts);
+  } catch (e) { setStatus("加载失败: " + e.message, false, true); }
+}
+
+// ---------- 操作 ----------
+async function generateFor(key, btn) {
+  const posts = await api("/api/posts?account=" + encodeURIComponent(account));
+  const t = aggregate(posts).find(x => x.key === key);
+  if (!t) return;
+  const missing = PLATFORMS.filter(p => !t.drafts[p]);
+  const platforms = missing.length === 0 ? PLATFORMS : missing;
+  btn.disabled = true;
+  const old = btn.textContent;
+  btn.textContent = "生成中（约1分钟）…";
+  setStatus(`正在为「${t.title.slice(0, 20)}」生成 ${platforms.join("/")} 终稿…`, true, false);
+  try {
+    const sourceId = t.drafts["小红书"] ? (t.drafts["小红书"].source_post_id || t.drafts["小红书"].id) : "";
+    await api("/api/studio/generate", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        account, topic: t.title, content_line: t.line,
+        material_text: t.originalBody || "", platforms, source_post_id: sourceId,
+      }),
+    });
+    setStatus(`已生成并保存（状态：待确认），点「查看/编辑终稿」修改后发布`, false, false);
+    toast("生成完成 ✓");
+  } catch (e) {
+    setStatus("生成失败: " + e.message, false, true);
+  } finally {
+    btn.disabled = false; btn.textContent = old;
+    refresh();
+  }
+}
+
+async function publishDraft(postId, plat, btn) {
+  btn.disabled = true; btn.textContent = "发布中…";
+  try {
+    const r = await api("/api/publish", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ post_id: postId, platform: plat }),
+    });
+    if (r.url) window.open(r.url, "_blank");
+    toast(r.msg || "已处理");
+  } catch (e) { toast("发布失败: " + e.message); }
+  refresh();
+}
+
+function toggleEdit(key) {
+  const box = $("edit-" + key);
+  if (box.style.display === "none") {
+    box.style.display = "block";
+    box.innerHTML = `<textarea id="ta-${key}" placeholder="原稿内容（生成终稿时作为素材）"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input id="ett-${key}" style="flex:1;padding:8px 12px;border-radius:9px;border:1px solid var(--border);" placeholder="标题">
+        <button class="act-btn primary" onclick="saveEdit('${key}')">保存</button>
+      </div>`;
+    api("/api/posts?account=" + encodeURIComponent(account)).then(posts => {
+      const t = aggregate(posts).find(x => x.key === key);
+      const orig = t && t.drafts["小红书"] && !t.drafts["小红书"].source_post_id ? t.drafts["小红书"] : null;
+      $("ta-" + key).value = orig ? orig.body || "" : (t ? t.originalBody : "");
+      $("ett-" + key).value = t ? t.title : "";
+    });
+  } else box.style.display = "none";
+}
+
+async function saveEdit(key) {
+  const posts = await api("/api/posts?account=" + encodeURIComponent(account));
+  const t = aggregate(posts).find(x => x.key === key);
+  const orig = t && t.drafts["小红书"] && !t.drafts["小红书"].source_post_id ? t.drafts["小红书"] : null;
+  const target = orig || (t ? Object.values(t.drafts)[0] : null);
+  if (!target) return toast("找不到可编辑的稿件");
+  await api("/api/posts/save", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: target.id, title: $("ett-" + key).value, body: $("ta-" + key).value, topic: $("ett-" + key).value }),
+  });
+  toast("已保存 ✓"); refresh();
+}
+
+async function delTopic(key) {
+  if (!confirm("删除这个选题的所有平台稿件？")) return;
+  const posts = await api("/api/posts?account=" + encodeURIComponent(account));
+  const t = aggregate(posts).find(x => x.key === key);
+  for (const d of Object.values(t.drafts)) {
+    await api("/api/posts/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id }) });
+  }
+  refresh();
+}
+
+$("quickAddBtn").addEventListener("click", async () => {
+  const v = $("quickTopic").value.trim();
+  if (!v) return;
+  $("quickAddBtn").disabled = true;
+  try {
+    await api("/api/posts/save", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ account, title: v, topic: v, body: "", status: "素材", content_line: "" }),
+    });
+    $("quickTopic").value = "";
+    toast("已加入稿件库 ✓"); refresh();
+  } catch (e) { toast("添加失败: " + e.message); }
+  $("quickAddBtn").disabled = false;
+});
+$("quickTopic").addEventListener("keydown", e => { if (e.key === "Enter") $("quickAddBtn").click(); });
+
+// ---------- 素材箱 ----------
+async function loadMaterials() {
+  try {
+    const mats = await api("/api/materials");
+    $("matList").innerHTML = mats.map(m =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <span><b>${esc(m.title)}</b> <span class="muted">${esc((m.content || "").slice(0, 60))}</span></span>
+        <button class="act-btn" style="padding:2px 10px;font-size:11px;" onclick="delMat('${m.id}')">删</button>
+      </div>`).join("") || '<div class="muted" style="font-size:12px;">空</div>';
+  } catch (e) {}
+}
+async function delMat(id) {
+  await api("/api/materials/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+  loadMaterials();
+}
+$("matAddBtn").addEventListener("click", async () => {
+  if (!$("matContent").value.trim()) return toast("请粘贴内容");
+  await api("/api/materials", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: $("matTitle").value || "未命名素材", content: $("matContent").value, type: "文本" }),
+  });
+  $("matTitle").value = ""; $("matContent").value = "";
+  loadMaterials(); toast("素材已存 ✓");
+});
+
+// ---------- 趋势灵感 ----------
+async function loadTrends() {
+  try {
+    const d = await api("/api/trends?account=" + encodeURIComponent(account));
+    $("trendList").innerHTML = (d.items || []).map(t =>
+      `<div class="trend-item">
+        <b style="font-size:13px;">${esc(t.title)}</b> <span class="muted" style="font-size:11px;">${esc(t.source || "")} · ${esc(t.category || "")}</span>
+        <div class="muted" style="font-size:12px;margin-top:4px;">${esc(t.summary || "")}</div>
+        <button class="act-btn" style="margin-top:8px;padding:3px 12px;font-size:11px;" onclick="trendToTopic('${esc(t.title).replace(/'/g, "&#39;")}')">→ 加入稿件库</button>
+      </div>`).join("") || "暂无趋势，点「换一批」生成";
+  } catch (e) { $("trendList").textContent = "趋势加载失败"; }
+}
+function trendToTopic(title) {
+  $("quickTopic").value = title;
+  $("quickAddBtn").click();
+}
+$("trendRefresh").addEventListener("click", async () => {
+  $("trendRefresh").disabled = true; $("trendRefresh").textContent = "生成中…";
+  try {
+    const cfg = await api("/api/config");
+    await api("/api/trends/refresh", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ account, count: 6, identity: (cfg.account_profiles || {})[account]?.identity || "" }),
+    });
+    loadTrends();
+  } catch (e) { toast("刷新失败: " + e.message); }
+  $("trendRefresh").disabled = false; $("trendRefresh").textContent = "换一批";
+});
+
+// ---------- init ----------
+(async function init() {
+  try {
+    const cfg = await api("/api/config");
+    $("accountSel").innerHTML = (cfg.accounts || ["Jocelyn"]).map(a => `<option${a === "Jocelyn" ? " selected" : ""}>${a}</option>`).join("");
+  } catch (e) {}
+  $("accountSel").addEventListener("change", () => {
+    account = $("accountSel").value;
+    PLATFORMS = ACCOUNT_PLATFORMS[account] || ["小红书", "X", "Threads", "抖音"];
+    refresh(); loadTrends();
+  });
+  refresh(); loadMaterials(); loadTrends();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据分析 · 大号自媒体工作台</title>
+<link rel="stylesheet" href="style.css?v=3">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">Jocelyn <span>·</span> 数据分析</div>
+  <nav>
+    <a href="index.html">创作工作台</a>
+    <a href="studio.html">一键四平台</a>
+    <a href="analytics.html" class="active">数据分析</a>
+  </nav>
+  <div class="account-switch">
+    账号 <select id="accountSel"></select>
+  </div>
+</div>
+
+<div class="content" style="max-width:1200px;margin:0 auto;">
+
+  <div style="margin-top:24px;">
+    <div class="section-title">数据分析</div>
+    <div class="section-sub">录入每篇笔记 24h / 7 天数据，自动汇总内容线表现、漏斗和趋势。账号级数据（粉丝、主页访客、周环比）用「抓后台数据」从创作者中心直接同步。</div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+    <button onclick="alert('抓取方式：让我（ZCode）跑一遍 ego-browser 脚本即可——已在 09-21 验证可行。直接说「抓一下小红书后台数据」就行。')">ℹ 数据怎么更新？</button>
+  </div>
+
+  <!-- 概览卡 -->
+  <div class="stat-cards" id="statCards"></div>
+
+  <!-- 账号快照（创作者后台抓取） -->
+  <div class="chart-box" id="accountBox" style="display:none;">
+    <h3>账号快照 <span class="muted" style="font-weight:400;font-size:12px;" id="accountPeriod"></span></h3>
+    <div id="accountGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:8px;"></div>
+    <div class="sub muted" id="accountHint" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- 数据录入 -->
+  <div class="chart-box">
+    <h3>数据录入</h3>
+    <div class="sub muted" style="margin-bottom:12px;">选择已发布稿件，录入发布后数据（建议 24h / 7 天各补一次）</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:end;">
+      <div class="form-row" style="grid-column:span 2;"><label>稿件</label><select id="aPost"></select></div>
+      <div class="form-row"><label>统计节点</label>
+        <select id="aNode"><option>发布后24小时</option><option>发布后7天</option></select>
+      </div>
+      <div class="form-row"><label>观看/小眼睛</label><input id="aViews" type="number" min="0"></div>
+      <div class="form-row"><label>点赞</label><input id="aLikes" type="number" min="0"></div>
+      <div class="form-row"><label>收藏</label><input id="aCollects" type="number" min="0"></div>
+      <div class="form-row"><label>评论</label><input id="aComments" type="number" min="0"></div>
+      <div class="form-row"><label>分享</label><input id="aShares" type="number" min="0"></div>
+      <div class="form-row"><label>涨粉</label><input id="aFollowers" type="number" min="0"></div>
+      <div class="form-row"><label>主页访问</label><input id="aProfile" type="number" min="0"></div>
+      <div class="form-row"><button class="primary" style="width:100%;" onclick="saveAnalytics()">保存</button></div>
+    </div>
+  </div>
+
+  <!-- 图表区 -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="chart-box">
+      <h3>发布趋势（观看 / 涨粉）</h3>
+      <div class="chart" id="chartTrend"></div>
+    </div>
+    <div class="chart-box">
+      <h3>转化漏斗</h3>
+      <div class="chart" id="chartFunnel"></div>
+    </div>
+  </div>
+
+  <div class="chart-box">
+    <h3>内容线对比（平均观看 · 收藏率 · 转粉率）</h3>
+    <div class="chart" id="chartLine"></div>
+  </div>
+
+  <!-- 单篇表现表 -->
+  <div class="chart-box">
+    <h3>单篇表现</h3>
+    <div class="sub muted" id="bestHint" style="margin-bottom:10px;"></div>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="dataTable">
+        <thead><tr>
+          <th data-k="date">日期</th><th>标题</th><th>内容线</th>
+          <th data-k="impressions">曝光</th><th data-k="views">观看</th><th data-k="ctr">封面点击率</th>
+          <th data-k="likes">赞</th><th data-k="collects">藏</th>
+          <th data-k="comments">评</th><th data-k="shares">享</th><th data-k="followers">涨粉</th>
+          <th data-k="rate">赞藏率</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======== 一个月实验看板（持穗/Rohini 双轨） ======== -->
+  <div class="chart-box" id="expBox">
+    <h3>🧪 一个月实验看板（持穗/Rohini · 双轨）</h3>
+    <div class="sub muted" style="margin-bottom:12px;">每周日录一次快照（4平台各3个数字，5分钟）。月底按「涨粉效率 + 三选一判据」锁定垂直领域。</div>
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px;">
+      <div id="snapInputs" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+      <button class="btn" id="snapSaveBtn" style="padding:9px 22px;">存快照</button>
+    </div>
+
+    <div id="expDelta" style="margin-bottom:14px;"></div>
+    <div class="chart" id="chartFollowers" style="height:260px;"></div>
+
+    <h3 style="margin-top:20px;">四类选题对比（月底决策依据）</h3>
+    <div style="overflow-x:auto;">
+      <table class="data-table" id="typeTable">
+        <thead><tr><th>选题类型</th><th>篇数</th><th>总阅读</th><th>总赞</th><th>总藏</th><th>篇均阅读</th></tr></thead>
+        <tbody><tr><td colspan="6" class="muted">发布并在「数据录入」补数据后自动聚合</td></tr></tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:20px;">垂直领域三选一（2027-01 锁定）</h3>
+    <div id="verticalList" class="sub muted" style="font-size:13px;"></div>
+  </div>
+
+</div>
+
+<script src="analytics.js?v=4"></script>
+<script>
+// ======== 实验看板 ========
+(function() {
+  const PLATS = ["公众号", "知乎", "即刻", "小红书"];
+  const $id = id => document.getElementById(id);
+  const esc = s => { const d = document.createElement("div"); d.textContent = s == null ? "" : s; return d.innerHTML; };
+
+  $id("snapInputs").innerHTML = PLATS.map(p => `
+    <div style="border:1px solid var(--border);border-radius:10px;padding:8px 12px;">
+      <div style="font-size:12px;font-weight:600;margin-bottom:5px;">${p}</div>
+      <input type="number" placeholder="粉丝" data-p="${p}" data-k="followers" style="width:70px;padding:4px 6px;font-size:12px;">
+      <input type="number" placeholder="本周阅读" data-p="${p}" data-k="reads" style="width:80px;padding:4px 6px;font-size:12px;">
+      <input type="number" placeholder="新微信" data-p="${p}" data-k="wechat" style="width:64px;padding:4px 6px;font-size:12px;" title="本周通过内容加你的业内微信数">
+    </div>`).join("");
+
+  $id("snapSaveBtn").addEventListener("click", async () => {
+    const body = {};
+    let filled = 0;
+    document.querySelectorAll("#snapInputs input").forEach(i => {
+      const p = i.dataset.p; body[p] = body[p] || {};
+      if (i.value !== "") { body[p][i.dataset.k] = +i.value; filled++; }
+    });
+    if (!filled) return alert("至少填一个数字");
+    const r = await fetch("/api/followers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(x => x.json());
+    if (r.ok) { alert("快照已存 ✓（" + r.snapshots + " 条历史）"); loadExp(); }
+  });
+
+  async function loadExp() {
+    try {
+      const d = await fetch("/api/experiment").then(r => r.json());
+      // 周环比
+      const dl = Object.entries(d.deltas || {}).map(([p, v]) =>
+        `<span style="display:inline-block;margin:2px 8px 2px 0;padding:4px 12px;border-radius:8px;background:var(--bg-tint,#eef2ee);font-size:12px;">
+          <b>${p}</b> ${v === null || v === undefined ? "待第二周数据" : (v >= 0 ? "+" : "") + v + " 粉/周"}</span>`).join("");
+      $id("expDelta").innerHTML = dl ? "本周涨粉：" + dl : '<span class="muted">还没快照，填上面数字存第一个基线</span>';
+
+      // 粉丝曲线
+      if (window.echarts && (d.dates || []).length) {
+        const chart = echarts.init($id("chartFollowers"));
+        chart.setOption({
+          tooltip: { trigger: "axis" },
+          legend: { data: PLATS },
+          grid: { left: 40, right: 20, top: 34, bottom: 26 },
+          xAxis: { type: "category", data: d.dates },
+          yAxis: { type: "value" },
+          series: PLATS.map(p => ({ name: p, type: "line", connectNulls: true,
+            data: (d.series[p] || []).map(x => x.followers) })),
+        });
+      }
+
+      // 四类选题
+      const ts = d.type_stats || {};
+      const rows = Object.entries(ts).map(([t, b]) => `
+        <tr><td>${esc(t)}</td><td>${b.count}</td><td>${b.views.toLocaleString()}</td><td>${b.likes}</td><td>${b.collects}</td>
+        <td>${b.count ? Math.round(b.views / b.count).toLocaleString() : 0}</td></tr>`).join("");
+      if (rows) $id("typeTable").querySelector("tbody").innerHTML = rows;
+
+      // 三选一
+      const vs = d.verticals || {};
+      $id("verticalList").innerHTML = Object.entries(vs).map(([k, v], i) =>
+        `<div style="padding:6px 0;border-bottom:1px solid var(--border);"><b>${i + 1}. ${esc(k)}</b> — ${esc(v)}</div>`).join("") +
+        '<div style="margin-top:8px;">判据：哪个「不写难受」＋数据可得＋目标公司密度。月底看四类对比表 + 涨粉效率做最终决定。</div>';
+    } catch (e) { $id("expDelta").textContent = "实验数据加载失败"; }
+  }
+  loadExp();
+})();
+</script>
+</body>
+</html>
