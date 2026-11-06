@@ -3,3 +3,5 @@ main{max-width:1440px;margin:28px auto}#editor-view{max-width:800px;margin:auto}
 .day-budget{font-size:11px;color:var(--muted);white-space:nowrap}.task-instructions{font-size:12px;line-height:1.6;margin:8px 0}.task-instructions summary{cursor:pointer;color:var(--muted)}.task-instructions p{margin:6px 0}
 
 .day-label{flex-wrap:wrap}.day-label>span{white-space:nowrap}
+
+.draft-shortcuts{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 22px}.draft-shortcuts>b{width:100%;font-size:14px}.draft-shortcuts a{flex:1 1 180px;background:white;border:1px solid #dce4dc;border-radius:10px;padding:12px;color:#304b3f;text-decoration:none;font-size:14px}.draft-shortcuts small{display:block;margin-top:8px;color:#68796b;font-size:12px}

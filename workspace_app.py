@@ -36,7 +36,11 @@ def view(start):
  g=growth.read(str(BASE));metrics=list(g.get('metrics',[]));new=data['reviews'];keys={(r['title'],r['date'],r['window'],r.get('platform','小红书')) for r in new};metrics=[r for r in metrics if (r['title'],r['date'],r['window'],r.get('platform','小红书')) not in keys]+new
  posts={r['id']:r for r in read('data/posts.json',[])};titles={k:r.get('title','') for k,r in posts.items()}
  legacy=[{**r,'title':titles.get(r.get('post_id')) or r.get('post_id','')} for r in read('data/analytics.json',[]) if (r.get('account') or posts.get(r.get('post_id'),{}).get('account'))=='Jocelyn']
- return {'production':production,'start':start,'days':days,'tasks':tasks,'version':data['version'],'snapshot_version':g['version'],'snapshots':g.get('snapshots',[]),'metrics':metrics,'cloud_reviews':cloud['reviews'],'legacy_metrics':legacy,'works':cloud['works'],'synced_at':cloud['synced_at']}
+ planned=sorted(data.get('production_weeks',{}));upcoming=next((x for x in planned if x>=monday(desk.today())),None);draft_links=[]
+ for tid in data.get('production_weeks',{}).get(upcoming,{}).get('topics',[]):
+  stages=[t for t in data['tasks'] if t.get('plan_week')==upcoming and t.get('topic')==tid];record=next((x for x in all_.values() if x.get('source_id')==tid and x.get('platform')=='小红书'),None);work=next((x for x in cloud['works'] if tid in x.get('topics',[])),None)
+  if stages:draft_links.append({'topic':tid,'day':stages[0]['day'],'title':record['title'] if record else work['title'] if work else stages[0].get('topic_title','选题'),'ready':bool(record or work)})
+ return {'upcoming':upcoming,'draft_links':draft_links,'production':production,'start':start,'days':days,'tasks':tasks,'version':data['version'],'snapshot_version':g['version'],'snapshots':g.get('snapshots',[]),'metrics':metrics,'cloud_reviews':cloud['reviews'],'legacy_metrics':legacy,'works':cloud['works'],'synced_at':cloud['synced_at']}
 def editor(day,topic):
  d=desk.state(day)
  if not topic:return d
