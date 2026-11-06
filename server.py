@@ -5,6 +5,7 @@
 """
 import json
 import growth
+import feishu_board
 import os
 import re
 import sys
@@ -1135,6 +1136,8 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         qs = parse_qs(urlparse(self.path).query)
+        if feishu_board.handle(self, "GET", path):
+            return
         if growth.handle(self, "GET", path, BASE, call_llm, get_config):
             return
 
@@ -1451,6 +1454,8 @@ class Handler(SimpleHTTPRequestHandler):
     # ---------- POST ----------
     def do_POST(self):
         path = urlparse(self.path).path
+        if feishu_board.handle(self, "POST", path):
+            return
         if growth.handle(self, "POST", path, BASE, call_llm, get_config):
             return
 
