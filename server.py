@@ -6,6 +6,7 @@
 import json
 import growth
 import feishu_board
+import material_pipeline
 import os
 import re
 import sys
@@ -1136,6 +1137,8 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         qs = parse_qs(urlparse(self.path).query)
+        if material_pipeline.handle(self, "GET", path):
+            return
         if feishu_board.handle(self, "GET", path):
             return
         if growth.handle(self, "GET", path, BASE, call_llm, get_config):
@@ -1245,40 +1248,6 @@ class Handler(SimpleHTTPRequestHandler):
                     seen.add(k)
                     uniq.append(c)
             return self._send_json({"cases": uniq[:18]})
-
-        if path == "/api/hot/today":
-            # 今日热点：从自家AI日报最新期实抓（GitHub trending + 论文），生成可直接入库的热点选题
-            import datetime as _dt
-            import re as _re
-            import urllib.request as _u
-            latest = None
-            for back in range(0, 5):
-                d = _dt.date.today() - _dt.timedelta(days=back)
-                url = f"https://raw.githubusercontent.com/shenjiaying49-ship-it/ai-daily-news/main/daily-{d.isoformat()}.html"
-                try:
-                    req = _u.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-                    with _u.urlopen(req, timeout=12) as r:
-                        latest = (d.isoformat(), r.read().decode("utf-8", "ignore"))
-                    break
-                except Exception:
-                    continue
-            if not latest:
-                return self._send_json({"error": "最近 5 天都没拉到日报（管线可能停更）"}, 502)
-            dstr, html = latest
-            text = _re.sub(r"<[^>]+>", "\n", _re.sub(r"<script[\s\S]*?</script>", "", html))
-            import html as _h
-            lines = [_h.unescape(l.strip()) for l in text.split("\n") if l.strip()]
-            hots = []
-            for i, l in enumerate(lines):
-                if _re.match(r"^★\s*[\d,]+", l):
-                    for j in range(i - 1, max(0, i - 6), -1):
-                        c = lines[j]
-                        if len(c) > 4 and not _re.search(r"(↗|★|arXiv|http)", c):
-                            hots.append({"name": c[:70], "stat": l[:60]})
-                            break
-                if len(hots) >= 6:
-                    break
-            return self._send_json({"date": dstr, "hots": hots})
 
         if path == "/api/experiment":
             # 一个月实验看板：周度粉丝快照 + 涨粉归因 + 四类选题对比 + 三选一决策
@@ -1454,6 +1423,8 @@ class Handler(SimpleHTTPRequestHandler):
     # ---------- POST ----------
     def do_POST(self):
         path = urlparse(self.path).path
+        if material_pipeline.handle(self, "POST", path):
+            return
         if feishu_board.handle(self, "POST", path):
             return
         if growth.handle(self, "POST", path, BASE, call_llm, get_config):

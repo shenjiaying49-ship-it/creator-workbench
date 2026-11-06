@@ -4,7 +4,7 @@ let data={topics:[],works:[],reviews:[],rules:[]},editing=null,planning=null,dir
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 function notice(t){$('notice').textContent=t;}
 async function api(path,body){const r=await fetch('/api/board'+path,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok||d.error)throw Error(d.error||'请求失败');return d;}
-function choose(t){tab=t;document.querySelectorAll('.tab').forEach(el=>el.hidden=el.id!==t);document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));}
+function choose(t){tab=t;$('material-pool').hidden=t!=='plan';document.querySelectorAll('.tab').forEach(el=>el.hidden=el.id!==t);document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));}
 function worksFor(id){return data.works.filter(w=>w.topics.includes(id)&&w.account==='Jocelyn');}
 function render(){
  $('base-link').href=data.base_url;$('sync-state').textContent=data.synced_at?'同步于 '+data.synced_at.slice(5,16).replace('T',' '):'尚未同步';if(data.health?.ok===false)$('sync-state').textContent='离线 · 保留上次内容';
@@ -36,3 +36,16 @@ $('review-form').onsubmit=async e=>{e.preventDefault();await run(e.submitter,asy
 $('sync').onclick=()=>sync();$('search').oninput=renderTopics;$('draft-filter').onchange=render;
 $('editor').addEventListener('cancel',e=>{if(dirty&&!confirm('当前文字未保存，确定关闭？'))e.preventDefault();else dirty=false;});window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 load().then(()=>sync(true)).catch(e=>{notice(e.message);$('sync-state').textContent='读取失败 · 可重试';});setInterval(()=>{if(!document.hidden&&!document.querySelector('dialog[open]'))sync(true);},300000);
+
+// Independent source feed: no generated "news" or automatic publishing.
+async function loadMaterials(refresh=false){
+ const button=$('material-refresh');button.disabled=true;$('material-state').textContent=refresh?'采集中…':'读取中…';
+ try{const r=await fetch('/api/material-feed'+(refresh?'/refresh':''),refresh?{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}:{});const d=await r.json();if(!r.ok||d.error)throw Error(d.error||'读取失败');
+ const status=Object.entries(d.sources||{});const bad=status.some(([n,s])=>!s.ok||s.stale);$('material-state').textContent=`${d.items.length} 条`+(bad?' · 部分来源待恢复':'');
+ $('material-status').textContent=status.map(([name,s])=>name+'：'+(!s.ok?'采集失败，保留旧素材':s.stale?'超过24小时未更新':'已更新')+(s.last_success?' · '+s.last_success.slice(5,16).replace('T',' '):'')).join('；')||'首次采集尚未完成';
+ $('material-list').innerHTML=d.items.map(i=>`<article class="row"><div class="row-main"><h3><a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)} ↗</a></h3><small>${esc(i.source)} · ${esc(i.source_date.slice(0,10))}<br>${esc(i.metric)}</small><details><summary>摘要</summary><p>${esc(i.summary)}</p></details></div><button data-adopt="${esc(i.id)}">加入选题</button></article>`).join('')||'<p class="empty">暂无素材，可点击更新重试。</p>';
+ }catch(e){$('material-state').textContent='暂未更新';$('material-status').textContent=e.message;}finally{button.disabled=false;}
+}
+$('material-refresh').onclick=()=>loadMaterials(true);
+$('material-list').onclick=async e=>{const b=e.target.closest('[data-adopt]');if(!b)return;b.disabled=true;try{const r=await fetch('/api/material-feed/adopt',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.dataset.adopt})});const d=await r.json();if(!r.ok||d.error)throw Error(d.error||'入库失败');await load();b.textContent='已入五库';$('material-status').textContent='已加入飞书选题库，可在“从五库选下一篇”排期。';}catch(e){$('material-status').textContent=e.message;b.disabled=false;}};
+loadMaterials();setInterval(()=>{if(!document.hidden)loadMaterials();},300000);
