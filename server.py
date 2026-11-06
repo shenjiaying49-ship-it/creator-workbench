@@ -8,6 +8,7 @@ import growth
 import feishu_board
 import material_pipeline
 import creation_desk
+import workspace_app
 import os
 import re
 import sys
@@ -1138,6 +1139,14 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         qs = parse_qs(urlparse(self.path).query)
+        redirects = {"/daily.html": "/#/week", "/secondary-board.html": "/#/week", "/studio.html": "/#/edit", "/analytics.html": "/#/review", "/legacy-daily.html": "/#/review", "/legacy-studio.html": "/#/edit", "/legacy-index.html": "/#/week"}
+        if path in redirects:
+            self.send_response(302)
+            self.send_header("Location", redirects[path])
+            self.end_headers()
+            return
+        if workspace_app.handle(self, "GET", path, qs):
+            return
         if creation_desk.handle(self, "GET", path, qs, lambda prompt: call_llm(prompt, get_config())):
             return
         if material_pipeline.handle(self, "GET", path):
@@ -1426,6 +1435,8 @@ class Handler(SimpleHTTPRequestHandler):
     # ---------- POST ----------
     def do_POST(self):
         path = urlparse(self.path).path
+        if workspace_app.handle(self, "POST", path, {}):
+            return
         if creation_desk.handle(self, "POST", path, {}, lambda prompt: call_llm(prompt, get_config())):
             return
         if material_pipeline.handle(self, "POST", path):
