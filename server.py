@@ -7,6 +7,7 @@ import json
 import growth
 import feishu_board
 import material_pipeline
+import creation_desk
 import os
 import re
 import sys
@@ -1137,6 +1138,8 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path
         qs = parse_qs(urlparse(self.path).query)
+        if creation_desk.handle(self, "GET", path, qs, lambda prompt: call_llm(prompt, get_config())):
+            return
         if material_pipeline.handle(self, "GET", path):
             return
         if feishu_board.handle(self, "GET", path):
@@ -1423,6 +1426,8 @@ class Handler(SimpleHTTPRequestHandler):
     # ---------- POST ----------
     def do_POST(self):
         path = urlparse(self.path).path
+        if creation_desk.handle(self, "POST", path, {}, lambda prompt: call_llm(prompt, get_config())):
+            return
         if material_pipeline.handle(self, "POST", path):
             return
         if feishu_board.handle(self, "POST", path):

@@ -1,3 +1,5 @@
+> 2026-11-06 最新主流程以 [每天一篇、五库驱动](DAILY-CREATION.md) 为准。首页交付可编辑日稿；下文旧管理功能保留为辅助入口。
+
 # 架构
 现有：server.py HTTP服务 → growth.py → data/growth_workspace.json；前端 static/daily.html、growth.js、growth.css。五库由 tools/wuku_sync.py 拉取生成 static/wuku-data.json。
 
