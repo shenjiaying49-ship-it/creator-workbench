@@ -26,17 +26,23 @@ def view(start):
    tasks=[x for x in tasks if x['id']!='daily:'+t['date']]
  tasks.extend({**t,'action':'task','kind':'自定任务','state':'待完成'} for t in data['tasks'] if t['day'] in days)
  if days[-1]>=desk.today() or data['done'].get('review:'+days[-1]):tasks.append({'id':'review:'+days[-1],'day':days[-1],'title':'本周数据复盘','kind':'每周建议','action':'review','minutes':None,'state':'建议'})
+ production=data.get('production_weeks',{}).get(start)
+ if production:
+  replaced=set(production.get('topics',[]));managed=[t for t in data['tasks'] if t.get('plan_week')==start];managed_ids={t['id'] for t in managed}
+  tasks=[t for t in tasks if t['id'] not in managed_ids and t.get('kind') not in ('每日建议','稿件','每周建议') and not(t.get('kind')=='已排创作' and t.get('topic') in replaced)]
+  tasks.extend({**t,'state':'待完成'} for t in managed)
+ tasks.sort(key=lambda t:(t['day'],t.get('order',999)))
  for t in tasks:t['done']=bool(data['done'].get(t['id']))
  g=growth.read(str(BASE));metrics=list(g.get('metrics',[]));new=data['reviews'];keys={(r['title'],r['date'],r['window'],r.get('platform','小红书')) for r in new};metrics=[r for r in metrics if (r['title'],r['date'],r['window'],r.get('platform','小红书')) not in keys]+new
  posts={r['id']:r for r in read('data/posts.json',[])};titles={k:r.get('title','') for k,r in posts.items()}
  legacy=[{**r,'title':titles.get(r.get('post_id')) or r.get('post_id','')} for r in read('data/analytics.json',[]) if (r.get('account') or posts.get(r.get('post_id'),{}).get('account'))=='Jocelyn']
- return {'start':start,'days':days,'tasks':tasks,'version':data['version'],'snapshot_version':g['version'],'snapshots':g.get('snapshots',[]),'metrics':metrics,'cloud_reviews':cloud['reviews'],'legacy_metrics':legacy,'works':cloud['works'],'synced_at':cloud['synced_at']}
+ return {'production':production,'start':start,'days':days,'tasks':tasks,'version':data['version'],'snapshot_version':g['version'],'snapshots':g.get('snapshots',[]),'metrics':metrics,'cloud_reviews':cloud['reviews'],'legacy_metrics':legacy,'works':cloud['works'],'synced_at':cloud['synced_at']}
 def editor(day,topic):
  d=desk.state(day)
  if not topic:return d
  cloud=board.view();t=next((x for x in cloud['topics'] if x['id']==topic),None)
  if not t:raise ValueError('选题不存在，请刷新五库')
- records=[r for r in d['records'] if r['source_id']==topic];edits=local()['edits']
+ records=[{**r,'version':desk.digest(r)} for r in read('data/daily_creations.json',{}).values() if r.get('source_id')==topic];edits=local()['edits']
  for w in cloud['works']:
   if topic not in w['topics']:continue
   source=edits.get(w['id'],{'title':w['title'],'body':w['body'],'id':w['id']})

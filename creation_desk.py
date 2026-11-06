@@ -29,11 +29,12 @@ def route_rules(lib,platform,form):
  return rules
 
 def candidates(lib,day,explicit=None):
+ production=read('data/workspace_app.json',{});writing={t.get('topic'):t for t in production.get('tasks',[]) if t.get('plan_week') and t.get('day')==day and t.get('kind')=='写稿'};managed={i for w in production.get('production_weeks',{}).values() for i in w.get('topics',[])}
  used={r.get('source_id') for r in read('data/daily_creations.json',{}).values() if r.get('day')!=day}
  result=[]
  for t in lib['topics']:
-  if t['account']!='Jocelyn' or t['status']!='待使用' or t['id'] in used or (t['date'] and t['date']>day and t['id']!=explicit):continue
-  result.append({'id':t['id'],'kind':'选题','title':t['title'],'text':t['notes'],'scheduled':t['date']==day})
+  if t['account']!='Jocelyn' or t['status']!='待使用' or t['id'] in used or (t['date'] and t['date']>day and t['id']!=explicit and t['id'] not in writing):continue
+  result.append({'id':t['id'],'kind':'选题','title':t['title'],'text':t['notes'],'scheduled':t['id'] in writing or (t['date']==day and t['id'] not in managed),'production_task':writing.get(t['id'])})
  for f in lib['examples']:
   if f['record_id'] in used or '正文未抓取' in f.get('范文标题',''):continue
   body=f.get('逐字稿/口播稿') or ''

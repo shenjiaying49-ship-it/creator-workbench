@@ -24,6 +24,16 @@ class Workspace(unittest.TestCase):
   with patch.object(w.board,'view',return_value=cloud),patch.object(w.growth,'read',return_value={'version':0}):d=w.view('2026-11-12')
   self.assertEqual(len(d['days']),7);fixed=[t for t in d['tasks'] if t['kind']=='已排创作'];self.assertEqual(fixed[0]['minutes'],45);self.assertEqual(len(fixed),1)
 
+ def test_production_replaces_placeholders_without_losing_manual_tasks(self):
+  d=w.local();d['production_weeks']={'2026-11-09':{'topics':['t'],'budget':45}};d['tasks']=[{'id':'stage','plan_week':'2026-11-09','day':'2026-11-10','topic':'t','kind':'写稿','action':'edit','title':'改稿','minutes':45},{'id':'manual','day':'2026-11-11','title':'回评论','minutes':5}];w.write('data/workspace_app.json',d)
+  cloud={'topics':[{'id':'t','title':'Coffee','date':'2026-11-09','account':'Jocelyn','minutes':45}], 'reviews':[],'works':[],'synced_at':''}
+  with patch.object(w.board,'view',return_value=cloud),patch.object(w.growth,'read',return_value={'version':0}):v=w.view('2026-11-09')
+  self.assertEqual({t['id'] for t in v['tasks']},{'stage','manual'});self.assertEqual(sum(t['minutes'] for t in v['tasks']),50);self.assertEqual(v['tasks'][0]['action'],'edit')
+ def test_editor_finds_draft_on_original_day(self):
+  r={'day':'2026-11-09','source_id':'t','title':'原稿','platform':'小红书'};w.write('data/daily_creations.json',{'key':r})
+  with patch.object(w.desk,'state',return_value={'records':[]}),patch.object(w.board,'view',return_value={'topics':[{'id':'t','title':'选题'}],'works':[]}):d=w.editor('2026-11-10','t')
+  self.assertEqual(d['records'][0]['day'],'2026-11-09');self.assertEqual(d['records'][0]['version'],w.desk.digest(r))
+
 class HistoricalMetrics(unittest.TestCase):
  def test_legacy_account_inherited_from_post(self):
   with tempfile.TemporaryDirectory() as folder,patch.object(w,'BASE',Path(folder)):
