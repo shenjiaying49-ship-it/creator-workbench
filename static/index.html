@@ -24,6 +24,7 @@
   .b-likes { background: #fde8e8; color: #b3261e; }
   .plat-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .plat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 8px; font-size: 12px; color: #fff; }
+  .pc-pyq { background: #07c160; }
   .pc-xhs { background: #fe2c55; } .pc-x { background: #111; } .pc-threads { background: #0a7cff; } .pc-douyin { background: #161823; }
   .st-none { opacity: .38; }
   .st-dot { font-size: 10px; }
@@ -97,7 +98,55 @@
     </div>
   </details>
 
-  <div class="group-label">📥 待发布队列（有平台还没发的选题 · 同步优先级见「排期 · 四平台」页）</div>
+  <!-- 抖音爆款复刻入口 -->
+  <details class="materials-box" style="border:2px solid var(--accent-deep,#2f6f4f);">
+    <summary>🎬 抖音爆款复刻（vibe知识大赏管线：豆包产出贴这里 → 出会爆选题 → 同风格脚本）</summary>
+    <div style="margin-top:10px;">
+      <div class="muted" style="font-size:12px;margin-bottom:6px;">流程：① 抖音搜「vibe 知识大赏」找表现好的博主 → ② 博主主页用 transcript-exporter skill 投给豆包，让它整理选题库 → ③ 把豆包产出整段贴到下面，点分析</div>
+      <textarea id="dyCorpus" style="width:100%;box-sizing:border-box;min-height:120px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;" placeholder="粘贴豆包 + transcript-exporter 的产出（视频标题/文案/逐字稿/互动数据，多少都行）"></textarea>
+      <div style="display:flex;gap:10px;margin-top:8px;align-items:center;">
+        <button id="dyAnalyzeBtn" class="add-btn" style="padding:9px 20px;font-size:13px;">分析出会爆的选题</button>
+        <span class="muted" style="font-size:12px;" id="dyHint"></span>
+      </div>
+      <div id="dyTopics" style="margin-top:12px;"></div>
+    </div>
+  </details>
+
+  <!-- 想法直达终稿 -->
+  <div class="panel" style="border:2px solid var(--accent-deep,#2f6f4f);margin-bottom:16px;padding:16px;">
+    <div style="font-weight:700;font-size:15px;margin-bottom:4px;">💬 想法直达终稿</div>
+    <div class="muted" style="font-size:12px;margin-bottom:10px;">一句话想法就行，直接出成品。口播走 vibe知识大赏 skill，图文走蜜蜜导师体。</div>
+    <textarea id="ideaInput" style="width:100%;box-sizing:border-box;min-height:64px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;" placeholder="例：Claude 技能市场为什么突然爆了 / 我面 AI 产品岗踩的三个坑 / 为什么小团队更该用多智能体"></textarea>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button id="ideaKoubo" class="add-btn" style="background:#161823;">🎤 口播稿</button>
+      <button id="ideaTuwen" class="add-btn">📝 图文稿</button>
+      <span class="muted" style="font-size:12px;align-self:center;" id="ideaHint"></span>
+    </div>
+    <div id="ideaResult"></div>
+  </div>
+
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+    <button id="hotBtn" class="add-btn" style="background:linear-gradient(135deg,#b3261e,#d5533f);">🔥 拉今日热点建选题</button>
+    <span class="muted" style="font-size:12px;" id="hotHint">从你的AI日报实抓今日 GitHub 热榜，选中即入今日齐发队列（有热点必蹭）</span>
+  </div>
+  <div id="hotList"></div>
+
+  <!-- 海外营销案例库 -->
+  <details class="materials-box" style="border:2px solid #1c5d8f;">
+    <summary>🌍 海外营销案例库（HN/ProductHunt 实抓最新案例 → 一键建拆解选题）</summary>
+    <div style="margin-top:10px;">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+        <button id="caseBtn" class="act-btn primary" style="padding:7px 18px;">拉最新案例</button>
+        <span class="muted" style="font-size:12px;" id="caseHint">最近 60 天 · 增长/营销/定价/发布动作（X 源明天接入）</span>
+      </div>
+      <div id="caseList" class="muted" style="font-size:12px;">点上面按钮实抓</div>
+    </div>
+  </details>
+
+  <div class="group-label">🚀 今日齐发（成品就绪，直接复制发布）</div>
+  <div id="readyList"></div>
+
+  <div class="group-label">📝 草稿箱（选题日历确认的排期自动进这里 · 点卡片进工作台编辑 + 各平台呈现预览）</div>
   <div id="queueList"></div>
 
   <div class="group-label">✅ 已发布（小红书原帖 + 各平台同步进度）</div>
@@ -113,10 +162,10 @@
 <script>
 const $ = id => document.getElementById(id);
 const PLAT_CLS = { "小红书": "pc-xhs", "X": "pc-x", "Threads": "pc-threads", "抖音": "pc-douyin",
-                   "公众号": "pc-xhs", "知乎": "pc-x", "即刻": "pc-threads" };
+                   "公众号": "pc-xhs", "知乎": "pc-x", "即刻": "pc-threads", "朋友圈": "pc-pyq" };
 let PLATFORMS = ["小红书", "X", "Threads", "抖音"];   // 按账号切换
 const ACCOUNT_PLATFORMS = {
-  "持穗Rohini": ["公众号", "知乎", "即刻", "小红书"],
+  "持穗Rohini": ["公众号", "知乎", "即刻", "小红书", "朋友圈", "抖音"],
 };
 let account = "Jocelyn";
 
@@ -142,9 +191,13 @@ async function api(url, opts) {
 
 // ---------- 聚合：同一选题的多个平台稿合并成一张卡 ----------
 function aggregate(posts) {
+  // 两遍法：被 source_post_id 引用的原帖按自身 id 归键，避免和它的同步稿分裂成两张卡
+  const referenced = new Set(posts.map(p => p.source_post_id).filter(Boolean));
+  const keyOf = p => p.source_post_id || p.group_id ||
+    (referenced.has(p.id) ? p.id : (p.topic || p.title || p.id));
   const map = new Map();
   for (const p of posts) {
-    const key = p.source_post_id || p.group_id || p.topic || p.title || p.id;
+    const key = keyOf(p);
     if (!map.has(key)) {
       map.set(key, {
         key, title: p.topic || p.title, line: p.content_line || "",
@@ -152,16 +205,20 @@ function aggregate(posts) {
         originalId: p.group_id ? null : p.id,
         originalBody: p.group_id ? "" : (p.body || ""),
         groupIds: new Set(), drafts: {}, isXhsSync: p.source === "xhs_sync",
-        anyPublished: false,
+        anyPublished: false, scheduleDate: p.schedule_date || "",
       });
     }
     const t = map.get(key);
     if (p.group_id) t.groupIds.add(p.group_id);
-    const plat = p.platform || "小红书";
+    // 空正文的纯选题帖只是占位（日历确认刚落库的草稿），不算小红书已有稿，这样才能一键生成四平台；
+    // 旧稿同步锚点（xhs_sync / 带 source_url）即使正文为空仍算小红书稿，走「补齐其他平台」
+    const plat = p.platform || ((p.body || "").trim() || p.source === "xhs_sync" || p.source_url || p.xhs_id
+      ? "小红书" : "__placeholder__");
     t.drafts[plat] = p;
     if (p.xhs_metrics) t.xhsMetrics = p.xhs_metrics;
     if (p.format_advice) t.advice = p.format_advice;
     if (p.status === "已发布") t.anyPublished = true;
+    if (p.schedule_date) t.scheduleDate = p.schedule_date;
     if (!t.line && p.content_line) t.line = p.content_line;
     if (!t.originalId && !p.group_id) { t.originalId = p.id; t.originalBody = p.body || ""; }
   }
@@ -177,7 +234,16 @@ function platChip(plat, draft) {
   if (draft && status !== "已发布" && plat !== "小红书") {
     pubBtn = ` <button class="act-btn" style="padding:2px 10px;font-size:11px;" onclick="publishDraft('${draft.id}','${plat}',this)">发布</button>`;
   }
-  return `<span class="plat-chip ${PLAT_CLS[plat]} ${cls}">${plat} <span class="st-dot">${dot}</span> ${status}${pubBtn}</span>`;
+  // 发布链接：小红书原帖按 xhs_id 自动带出；缺链接的给补链按钮
+  let linkBtn = "";
+  if (draft && status === "已发布") {
+    const auto = (plat === "小红书" && draft.xhs_id) ? "https://www.xiaohongshu.com/explore/" + draft.xhs_id : "";
+    const url = draft.published_link || auto;
+    linkBtn = url
+      ? ` <a href="${esc(url)}" target="_blank" title="打开发布链接" style="font-size:12px;text-decoration:none;">🔗</a>`
+      : ` <button class="act-btn" style="padding:2px 8px;font-size:11px;" title="记录发布链接" onclick="addLink('${draft.id}')">🔗</button>`;
+  }
+  return `<span class="plat-chip ${PLAT_CLS[plat]} ${cls}">${plat} <span class="st-dot">${dot}</span> ${status}${pubBtn}${linkBtn}</span>`;
 }
 
 function cardHtml(t) {
@@ -188,17 +254,19 @@ function cardHtml(t) {
   const groupId = [...t.groupIds][0];
   const genLabel = missing.length === 0 ? "⚡ 重新生成全部" : (missing.length === 4 ? "⚡ 一键生成四平台终稿" : `⚡ 补齐 ${missing.join("/")}`);
   const viewBtn = groupId ? `<a class="act-btn" style="text-decoration:none;" href="studio.html?group=${groupId}">查看/编辑终稿</a>` : "";
+  const gid0 = [...t.groupIds][0];
   return `<div class="topic-card" id="card-${t.key}">
-    <div class="topic-title">${esc(t.title)}</div>
+    <div class="topic-title" ${gid0 ? `style="cursor:pointer;" onclick="location.href='studio.html?group=${gid0}'"` : ""}>${esc(t.title)}</div>
     <div class="topic-meta">
       ${t.line ? `<span class="badge b-line">${t.line}</span>` : ""}
+      ${t.scheduleDate ? `<span class="badge" style="background:#e3efe7;color:#2f6f4f;" title="选题日历已确认的排期日">📅 ${t.scheduleDate.slice(5)} 排期</span>` : ""}
       ${advice} ${likes}
     </div>
     <div class="plat-row">${chips}</div>
     <div class="pub-res" id="pubres-${t.key}"></div>
     <div class="topic-actions">
       <button class="act-btn primary" onclick="generateFor('${t.key}',this)">${genLabel}</button>
-      ${viewBtn}
+      ${viewBtn || (gid0 ? `<a class="act-btn" style="text-decoration:none;font-weight:600;" href="studio.html?group=${gid0}">打开工作台</a>` : "")}
       <button class="act-btn" onclick="toggleEdit('${t.key}')">编辑原稿</button>
       <button class="act-btn" style="color:#b3261e;" onclick="delTopic('${t.key}')">删除</button>
     </div>
@@ -208,12 +276,69 @@ function cardHtml(t) {
 
 function render(posts) {
   const topics = aggregate(posts);
-  const queue = topics.filter(t => !t.anyPublished);
-  const published = topics.filter(t => t.anyPublished);
+  // 今日齐发：有齐发时刻表的成品组（不依赖配图）
+  const ready = topics.filter(t => t.drafts["小红书"] && t.drafts["小红书"].publish_plan);
+  window._readyTopics = {};
+  ready.forEach(t => { window._readyTopics[t.key] = t; });
+  const rest = topics.filter(t => !ready.includes(t));
+  const queue = rest.filter(t => !t.anyPublished);
+  const published = rest.filter(t => t.anyPublished);
+  $("readyList").innerHTML = ready.length ? ready.map(readyCardHtml).join("")
+    : '<div class="muted" style="font-size:13px;">暂无成品齐发包 — 下方队列点「⚡一键生成」后自动出现在这里</div>';
   $("queueList").innerHTML = queue.length ? queue.map(cardHtml).join("")
     : '<div class="muted" style="font-size:13px;">队列空 — 在上方输入新选题</div>';
   $("publishedList").innerHTML = published.length ? published.map(cardHtml).join("")
     : '<div class="muted" style="font-size:13px;">暂无已发布</div>';
+}
+
+// 今日齐发卡片：时刻表 + 配图 + 每平台一键复制
+function readyCardHtml(t) {
+  const xhs = t.drafts["小红书"];
+  const gzh = t.drafts["公众号"], zh = t.drafts["知乎"], jk = t.drafts["即刻"];
+  const gid = [...t.groupIds][0];
+  const plan = (xhs.publish_plan || []).map(s => `
+    <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;align-items:baseline;">
+      <b style="min-width:44px;color:var(--accent-deep,#2f6f4f);">${s.time}</b>
+      <span style="min-width:50px;font-weight:600;">${esc(s.platform)}</span>
+      <span>${esc(s.action)}</span>
+    </div>`).join("");
+  const copyBtn = (label, plat) => `<button class="act-btn" onclick="copyReady('${plat}','${t.key}')">${label}</button>`;
+  const sched = t.scheduleDate ? `<span class="badge" style="background:#e3efe7;color:#2f6f4f;" title="选题日历已确认的排期日">📅 ${t.scheduleDate.slice(5)} 排期</span>` : "";
+  return `<div class="topic-card" id="card-${t.key}" style="border:2px solid var(--accent-deep,#2f6f4f);">
+    <div class="topic-title" style="cursor:pointer;" onclick="location.href='studio.html?group=${gid}'">${esc(t.title)} <span class="badge b-line">成品就绪</span>${sched}</div>
+    <div style="margin-top:10px;">${plan}
+      <div class="muted" style="font-size:12px;margin-top:8px;">首评：${esc((xhs.first_comment || "").slice(0, 50))}</div></div>
+    <div class="topic-actions">
+      <a class="act-btn primary" style="text-decoration:none;" href="studio.html?group=${gid}">打开工作台（编辑+预览）</a>
+      ${copyBtn("复制小红书全套", "小红书")}
+      ${gzh ? copyBtn("复制公众号全文", "公众号") : ""}
+      ${zh ? copyBtn("复制知乎全文", "知乎") : ""}
+      ${jk ? copyBtn("复制即刻三条", "即刻") : ""}
+      ${t.drafts["朋友圈"] ? copyBtn("复制朋友圈文案", "朋友圈") : ""}
+      <button class="act-btn" onclick="toggleEdit('${t.key}')">编辑原稿</button>
+      <a class="act-btn" style="text-decoration:none;" href="https://creator.xiaohongshu.com/publish/publish" target="_blank">打开小红书发布页</a>
+
+    </div>
+    <div class="edit-area" id="edit-${t.key}" style="display:none;"></div>
+  </div>`;
+}
+
+window._readyTopics = {};
+function copyReady(plat, key) {
+  const t = window._readyTopics[key];
+  if (!t) return;
+  let text = "";
+  if (plat === "小红书") {
+    const d = t.drafts["小红书"];
+    text = `${d.title}\n\n${d.body}\n\n${(d.tags || []).join(" ")}\n\n【发出后立刻评论】${d.first_comment || ""}`;
+  } else if (plat === "朋友圈") {
+    const d = t.drafts["朋友圈"];
+    text = d ? (d.body || "") + (d.moment_comment ? "\n\n【自评】" + d.moment_comment : "") : "";
+  } else {
+    const d = t.drafts[plat];
+    text = d ? d.body : "";
+  }
+  navigator.clipboard.writeText(text).then(() => toast(plat + " 已复制，去发布 ✓")).catch(() => toast("复制失败"));
 }
 
 async function refresh() {
@@ -236,11 +361,37 @@ async function generateFor(key, btn) {
   setStatus(`正在为「${t.title.slice(0, 20)}」生成 ${platforms.join("/")} 终稿…`, true, false);
   try {
     const sourceId = t.drafts["小红书"] ? (t.drafts["小红书"].source_post_id || t.drafts["小红书"].id) : "";
+    // 素材用最富源文稿：按平台优先级取第一个有正文的
+    const prioG = ["公众号", "小红书", "知乎", "即刻", "X", "Threads", "抖音"];
+    let srcPost = null;
+    for (const pl of prioG) {
+      const d = t.drafts[pl];
+      if (d && d.body && d.body.trim().length > 50) { srcPost = d; break; }
+    }
+    let material = (srcPost && srcPost.body) || t.originalBody || "";
+    // 无素材 → 自动抓原文（选题确认即抓取，生成基于真实素材）
+    if (!material || material.trim().length < 100) {
+      if (sourceId) {
+        try {
+          setStatus("素材为空，先抓取原文…", true, false);
+          const pm = await api("/api/posts/prepare_material", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ post_id: sourceId }),
+          });
+          if (pm.ok) {
+            const fresh = await api("/api/posts?account=" + encodeURIComponent(account));
+            const fp = fresh.find(x => x.id === sourceId);
+            if (fp && fp.body) material = fp.body;
+            setStatus(`已抓取原文 ${pm.len} 字${pm.url ? "（来源：" + pm.url.slice(0, 40) + "）" : ""}，开始生成…`, true, false);
+          }
+        } catch (e) { /* 抓不到就按现有内容生成 */ }
+      }
+    }
     await api("/api/studio/generate", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         account, topic: t.title, content_line: t.line,
-        material_text: t.originalBody || "", platforms, source_post_id: sourceId,
+        material_text: material, platforms, source_post_id: sourceId,
       }),
     });
     setStatus(`已生成并保存（状态：待确认），点「查看/编辑终稿」修改后发布`, false, false);
@@ -266,35 +417,84 @@ async function publishDraft(postId, plat, btn) {
   refresh();
 }
 
+// 记录发布链接：发布后把平台上的帖子 URL 贴回来，存档到稿件
+async function addLink(postId) {
+  const url = (prompt("粘贴这条内容的发布链接（发布后从平台复制 URL）") || "").trim();
+  if (!url) return;
+  try {
+    await api("/api/posts/link", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ post_id: postId, url }),
+    });
+    toast("发布链接已记录 ✓");
+    refresh();
+  } catch (e) { toast("保存失败: " + e.message); }
+}
+
 function toggleEdit(key) {
   const box = $("edit-" + key);
   if (box.style.display === "none") {
     box.style.display = "block";
-    box.innerHTML = `<textarea id="ta-${key}" placeholder="原稿内容（生成终稿时作为素材）"></textarea>
+    box.innerHTML = `<textarea id="ta-${key}" style="min-height:220px;" placeholder="素材/原稿内容（生成终稿时以此为准；组稿选题显示最深版本）"></textarea>
       <div style="display:flex;gap:8px;margin-top:8px;">
         <input id="ett-${key}" style="flex:1;padding:8px 12px;border-radius:9px;border:1px solid var(--border);" placeholder="标题">
         <button class="act-btn primary" onclick="saveEdit('${key}')">保存</button>
       </div>`;
     api("/api/posts?account=" + encodeURIComponent(account)).then(posts => {
       const t = aggregate(posts).find(x => x.key === key);
-      const orig = t && t.drafts["小红书"] && !t.drafts["小红书"].source_post_id ? t.drafts["小红书"] : null;
-      $("ta-" + key).value = orig ? orig.body || "" : (t ? t.originalBody : "");
-      $("ett-" + key).value = t ? t.title : "";
+      if (!t) return;
+      // 取「最富源文稿」：按平台优先级取第一个有正文的，全空则取首个
+      const prio = ["公众号", "小红书", "知乎", "即刻", "X", "Threads", "抖音"];
+      let src = null;
+      for (const pl of prio) {
+        const d = t.drafts[pl];
+        if (d && d.body && d.body.trim().length > 50) { src = d; break; }
+      }
+      if (!src) src = t.drafts["公众号"] || t.drafts["小红书"] || Object.values(t.drafts)[0] || null;
+      const ta = $("ta-" + key);
+      ta.value = src ? (src.body || "") : "";
+      $("ett-" + key).value = t.title;
+      box.dataset.srcId = src ? src.id : "";
+      box.dataset.srcPlat = src ? (src.platform || "") : "";
+      // 空稿兜底：有 xhs_id → 抓取按钮；纯选题 → 粘贴提示
+      if (!ta.value.trim()) {
+        const hint = document.createElement("div");
+        hint.style.cssText = "font-size:12px;color:var(--dim);margin-top:6px;line-height:1.6;";
+        if (src && src.xhs_id) {
+          hint.innerHTML = `原稿正文当时没抓到（跨号限流）。<button class="act-btn" id="fetch-${key}" style="padding:3px 12px;font-size:12px;">抓取原文</button> 或直接粘贴修改`;
+          ta.insertAdjacentElement("afterend", hint);
+          $("fetch-" + key).onclick = async (e) => {
+            e.target.disabled = true; e.target.textContent = "抓取中（约1分钟）…";
+            try {
+              const r = await api("/api/posts/fetch_original", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ post_id: src.id }),
+              });
+              if (r.body) { ta.value = r.body; hint.remove(); toast("原文已抓取 ✓"); }
+              else toast(r.error || "抓取失败，可直接粘贴");
+            } catch (err) { toast("抓取失败: " + err.message); }
+            if (e.target) { e.target.disabled = false; e.target.textContent = "抓取原文"; }
+          };
+        } else {
+          hint.innerHTML = `选题占位：把你的素材/原稿粘贴到这里 → 保存 → 点「⚡生成」即以此为素材出四平台终稿`;
+          ta.insertAdjacentElement("afterend", hint);
+        }
+      }
     });
   } else box.style.display = "none";
 }
 
 async function saveEdit(key) {
-  const posts = await api("/api/posts?account=" + encodeURIComponent(account));
-  const t = aggregate(posts).find(x => x.key === key);
-  const orig = t && t.drafts["小红书"] && !t.drafts["小红书"].source_post_id ? t.drafts["小红书"] : null;
-  const target = orig || (t ? Object.values(t.drafts)[0] : null);
-  if (!target) return toast("找不到可编辑的稿件");
+  const box = $("edit-" + key);
+  const srcId = box.dataset.srcId;
+  if (!srcId) return toast("没有可编辑的稿件，先生成或添加原稿");
+  const title = $("ett-" + key).value.trim();
+  const body = $("ta-" + key).value;
   await api("/api/posts/save", {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: target.id, title: $("ett-" + key).value, body: $("ta-" + key).value, topic: $("ett-" + key).value }),
+    body: JSON.stringify({ id: srcId, title, body, topic: title }),
   });
-  toast("已保存 ✓"); refresh();
+  toast("已保存（作为该选题的源文稿，再点生成会用它做素材）✓"); refresh();
 }
 
 async function delTopic(key) {
@@ -348,6 +548,215 @@ $("matAddBtn").addEventListener("click", async () => {
   loadMaterials(); toast("素材已存 ✓");
 });
 
+// ---------- 想法直达终稿 ----------
+async function ideaGen(kind) {
+  const idea = $("ideaInput").value.trim();
+  if (!idea) return toast("先写一句想法");
+  const plat = kind === "koubo" ? "抖音" : "小红书";
+  const btn = kind === "koubo" ? $("ideaKoubo") : $("ideaTuwen");
+  btn.disabled = true; const old = btn.textContent; btn.textContent = "生成中（约1分钟）…";
+  $("ideaHint").textContent = `${plat === "抖音" ? "vibe知识大赏" : "蜜蜜导师体"} · 已注入人设与利他铁律`;
+  $("ideaResult").innerHTML = "";
+  try {
+    const d = await api("/api/studio/generate", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ account, topic: idea, content_line: "", material_text: "", platforms: [plat] }),
+    });
+    if (d.error) { toast(d.error); return; }
+    renderIdeaResult(plat, d.result);
+    $("ideaHint").textContent = "终稿已出并入库，可继续追生成其他平台";
+    refresh();
+  } catch (e) { toast("失败: " + e.message); }
+  btn.disabled = false; btn.textContent = old;
+}
+function renderIdeaResult(plat, r) {
+  let html = "", copyText = "";
+  if (plat === "抖音") {
+    const dy = r["抖音"] || {};
+    copyText = `【口播】${dy.script || ""}\n\n【拍摄】${dy.film_tips || ""}\n\n【描述区】${dy.caption || ""}\n${(dy.hashtags || []).join(" ")}`;
+    html = `<div style="margin-top:12px;border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--panel-solid);">
+      <b style="font-size:13px;">🎤 口播稿（${(dy.script || "").length}字 ≈ ${Math.round((dy.script || "").length / 4)}秒）</b>
+      <pre style="white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.8;margin:8px 0;">${esc(dy.script || "")}</pre>
+      <div class="muted" style="font-size:12px;border-top:1px dashed var(--border);padding-top:8px;">🎬 ${esc(dy.film_tips || "")}</div>
+      <div class="muted" style="font-size:12px;margin-top:4px;">📋 描述区：${esc(dy.caption || "")} ${(dy.hashtags || []).join(" ")}</div>
+    </div>`;
+  } else {
+    const x = r["小红书"] || {};
+    copyText = `${x.title || ""}\n\n${x.body || ""}\n\n${(x.tags || []).join(" ")}\n\n【首评】${x.first_comment || ""}`;
+    html = `<div style="margin-top:12px;border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--panel-solid);">
+      <b style="font-size:15px;">${esc(x.title || "")}</b>
+      <pre style="white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.8;margin:8px 0;">${esc(x.body || "")}</pre>
+      <div style="font-size:12px;color:#13386c;">${esc((x.tags || []).join(" "))}</div>
+      <div class="muted" style="font-size:12px;border-top:1px dashed var(--border);padding-top:6px;margin-top:6px;">首评：${esc(x.first_comment || "")}</div>
+    </div>`;
+  }
+  $("ideaResult").innerHTML = html +
+    `<div style="margin-top:8px;"><button class="act-btn primary" onclick="navigator.clipboard.writeText(document.getElementById('ideaCopyCache').textContent).then(()=>toast('终稿已复制 ✓'))">复制终稿</button></div>
+     <div id="ideaCopyCache" style="display:none;">${esc(copyText)}</div>`;
+}
+$("ideaKoubo").addEventListener("click", () => ideaGen("koubo"));
+$("ideaTuwen").addEventListener("click", () => ideaGen("tuwen"));
+
+// ---------- 今日热点（自家日报实抓） ----------
+$("hotBtn").addEventListener("click", async () => {
+  $("hotBtn").disabled = true; $("hotBtn").textContent = "拉取中…";
+  try {
+    const d = await api("/api/hot/today");
+    if (d.error) { toast(d.error); return; }
+    $("hotHint").textContent = `日报 ${d.date} 实抓 · ${d.hots.length} 个热点`;
+    $("hotList").innerHTML = d.hots.map((h, i) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;padding:9px 14px;margin-bottom:8px;background:var(--panel-solid);">
+        <span style="font-size:13px;"><b>${esc(h.name)}</b> <span class="muted" style="font-size:12px;">${esc(h.stat)}</span></span>
+        <button class="act-btn" style="padding:4px 14px;font-size:12px;" onclick="hotToTopic(${i}, this)">→ 建为今日选题</button>
+        <button class="act-btn primary" style="padding:4px 14px;font-size:12px;" onclick="hotScript(${i}, this)">⚡ 口播稿</button>
+      </div>`).join("");
+    window._hots = d.hots;
+  } catch (e) { toast("拉取失败: " + e.message); }
+  $("hotBtn").disabled = false; $("hotBtn").textContent = "🔥 拉今日热点建选题";
+});
+async function hotToTopic(i, btn) {
+  const h = window._hots[i];
+  const m = h.stat.match(/本周\s*\+([\d,]+)/);
+  const repo = h.name.split("/").pop() || h.name;
+  const title = m ? `${repo} 一周+${m[1]}星：涨这么快说明了什么` : `${repo} 突然爆火：值得现在进场吗`;
+  btn.disabled = true; btn.textContent = "已入库";
+  await api("/api/posts/save", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      account, title, topic: title, body: "", status: "素材",
+      content_line: "拆解类", platform: "小红书",
+      note: `真实锚点：${h.name} ${h.stat}（来源：自家AI日报 ${new Date().toISOString().slice(0,10)} 实抓）。拆解角度：为什么是现在/增长逻辑/对 AI 圈商业化意味着什么。读者带走：一个可迁移的判断框架`,
+      source_url: (typeof h !== "undefined" && h.name && h.name.includes("/")) ? `https://github.com/${h.name}` : "",
+    }),
+  });
+  toast("热点选题已入库，置顶在队列 ✓"); refresh();
+}
+
+// ---------- 原文 → 我的口播稿 ----------
+async function makeScript(url, title, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = "抓原文…"; }
+  try {
+    const r = await api("/api/cases/fetch_original", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    if (r.error) { toast(r.error); return; }
+    if (btn) { btn.textContent = "转口播…"; }
+    setStatus(`已抓到原文（${r.text.length} 字），正在按你的 skill 转成口播稿…`, true, false);
+    const g = await api("/api/studio/generate", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        account, topic: title || r.title, content_line: "流量线",
+        material_text: `【原文（真实来源，所有事实以此为准，禁止添加原文没有的事实）】\n标题：${r.title}\n${r.text.slice(0, 4000)}`,
+        platforms: ["抖音"],
+      }),
+    });
+    toast("口播稿已生成（vibe知识大赏风格），在队列卡片里查看 ✓");
+    setStatus(`「${(title || r.title).slice(0, 22)}」口播稿已入库：前3秒钩子→知识卡点陈列→结尾利他清单+先收藏指令`, false, false);
+    refresh();
+  } catch (e) { toast("失败: " + e.message); setStatus(e.message, false, true); }
+  if (btn) { btn.disabled = false; btn.textContent = "⚡ 口播稿"; }
+}
+async function hotScript(i, btn) {
+  const h = window._hots[i];
+  const repo = h.name.includes("/") ? `https://github.com/${h.name}` : "";
+  if (!repo) return toast("这条没有仓库链接，用案例库的口播稿按钮");
+  makeScript(repo, `${(h.name.split("/")[1] || h.name)} 一周暴涨：${h.stat.includes("全榜") ? "全榜现象级增速" : "周榜黑马"}`, btn);
+}
+
+// ---------- 海外营销案例库 ----------
+$("caseBtn").addEventListener("click", async () => {
+  $("caseBtn").disabled = true; $("caseBtn").textContent = "抓取中…";
+  try {
+    const d = await api("/api/cases/latest");
+    $("caseHint").textContent = `实抓 ${d.cases.length} 条（最近60天）`;
+    $("caseList").innerHTML = d.cases.map((c, i) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:6px;background:var(--panel-solid);">
+        <span style="flex:1;font-size:12.5px;">
+          <a href="${c.url}" target="_blank" style="color:#1c5d8f;text-decoration:none;font-weight:600;">${esc(c.title)}</a>
+          <span class="muted" style="font-size:11px;"> · ${esc(c.source)} ${esc(c.meta)}</span>
+        </span>
+        <button class="act-btn" style="padding:3px 12px;font-size:11px;" onclick="caseToTopic(${i}, this)">→ 建拆解选题</button>
+        <button class="act-btn primary" style="padding:3px 12px;font-size:11px;" onclick="makeScript('${esc(c.url).replace(/'/g, "&#39;")}', '${esc(c.title).replace(/'/g, "&#39;").slice(0, 50)}', this)">⚡ 口播稿</button>
+      </div>`).join("");
+    window._cases = d.cases;
+  } catch (e) { toast("抓取失败: " + e.message); }
+  $("caseBtn").disabled = false; $("caseBtn").textContent = "拉最新案例";
+});
+async function caseToTopic(i, btn) {
+  const c = window._cases[i];
+  const zh = c.title.length < 25;  // 已是短标题则直接用
+  const title = zh ? c.title : `海外案例拆解：${c.title.slice(0, 40)}`;
+  btn.disabled = true; btn.textContent = "已入库";
+  await api("/api/posts/save", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      account, title, topic: title, body: "", status: "素材",
+      content_line: "拆解类", platform: "小红书",
+      note: `海外真实案例（${c.source} ${c.meta}）：${c.title}。原文链接 ${c.url}。拆解框架：背景→这步运营动作→数据结果→为什么在海外成立→对AI圈/国内的可迁移判断。读者带走：一个可迁移的增长动作判断框架`,
+      source_url: (typeof c !== "undefined" && c.url) ? c.url : "",
+    }),
+  });
+  toast("拆解选题已入库 ✓"); refresh();
+}
+
+// ---------- 抖音爆款复刻管线 ----------
+$("dyAnalyzeBtn").addEventListener("click", async () => {
+  const corpus = $("dyCorpus").value.trim();
+  if (corpus.length < 50) return toast("先粘贴豆包产出（至少含几条视频的标题/数据）");
+  $("dyAnalyzeBtn").disabled = true;
+  $("dyAnalyzeBtn").textContent = "分析中（约1分钟）…";
+  $("dyHint").textContent = "正在提炼选题库并判断爆款概率";
+  try {
+    const r = await api("/api/douyin/analyze", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ account, corpus }),
+    });
+    if (r.error) { toast(r.error); return; }
+    renderDyTopics(r.topics || []);
+    $("dyHint").textContent = `提取 ${r.total || 0} 条素材，产出 ${(r.topics || []).length} 个会爆选题`;
+    toast("选题库已生成，挑一个做同风格脚本 ✓");
+  } catch (e) { toast("分析失败: " + e.message); }
+  $("dyAnalyzeBtn").disabled = false;
+  $("dyAnalyzeBtn").textContent = "分析出会爆的选题";
+});
+
+function renderDyTopics(topics) {
+  $("dyTopics").innerHTML = topics.map((t, i) => `
+    <div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--panel-solid);">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;">
+        <b style="font-size:14px;">${i + 1}. ${esc(t.title)}</b>
+        <span class="badge ${t.score >= 8 ? "b-likes" : "b-line"}">爆款指数 ${t.score}/10</span>
+      </div>
+      <div class="muted" style="font-size:11px;margin:4px 0;">来源：${esc(String(t.source_video || "").replace(/[《》]/g, ""))} · ${esc(String(t.source_likes || "").slice(0, 20))}</div>
+      <div class="muted" style="font-size:12px;margin:6px 0;">${esc(t.why)}</div>
+      <div style="font-size:12px;background:var(--bg-tint,#eef2ee);border-radius:8px;padding:6px 10px;margin-bottom:8px;">读者带走：${esc(t.reader_value)}</div>
+      <button class="act-btn primary" style="padding:6px 16px;font-size:12px;" onclick="dyMakeScript(${i}, this)">⚡ 做同风格视频脚本</button>
+    </div>`).join("");
+  window._dyTopics = topics;
+}
+
+async function dyMakeScript(i, btn) {
+  const t = window._dyTopics[i];
+  if (!t) return;
+  btn.disabled = true; btn.textContent = "生成中…";
+  setStatus(`正在生成抖音脚本「${t.title.slice(0, 18)}」（vibe知识大赏风格）…`, true, false);
+  try {
+    await api("/api/studio/generate", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        account, topic: t.title, content_line: "流量线",
+        material_text: `【同风格参考（爆款转录要点）】\n${t.reference || ""}\n\n【本选题要点】${t.why}\n【读者价值】${t.reader_value}`,
+        platforms: ["抖音"],
+      }),
+    });
+    toast("抖音脚本已生成，在下方队列里查看 ✓");
+    setStatus(`「${t.title.slice(0, 20)}」抖音脚本已入库（vibe知识大赏风格），点该卡片「查看/编辑终稿」修改`, false, false);
+    refresh();
+  } catch (e) { setStatus("生成失败: " + e.message, false, true); }
+  btn.disabled = false; btn.textContent = "⚡ 做同风格视频脚本";
+}
+
 // ---------- 趋势灵感 ----------
 async function loadTrends() {
   try {
@@ -381,7 +790,12 @@ $("trendRefresh").addEventListener("click", async () => {
 (async function init() {
   try {
     const cfg = await api("/api/config");
-    $("accountSel").innerHTML = (cfg.accounts || ["Jocelyn"]).map(a => `<option${a === "Jocelyn" ? " selected" : ""}>${a}</option>`).join("");
+    const accs = cfg.accounts || ["Jocelyn"];
+    // 默认落在活动账号（持穗），旧账号切过去才看
+    const def = accs.includes("持穗Rohini") ? "持穗Rohini" : accs[0];
+    $("accountSel").innerHTML = accs.map(a => `<option${a === def ? " selected" : ""}>${a}</option>`).join("");
+    account = def;
+    PLATFORMS = ACCOUNT_PLATFORMS[def] || PLATFORMS;
   } catch (e) {}
   $("accountSel").addEventListener("change", () => {
     account = $("accountSel").value;

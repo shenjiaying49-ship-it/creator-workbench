@@ -29,6 +29,7 @@
   .plat-card { background: var(--panel-solid); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
   .plat-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
   .plat-badge { font-weight: 700; font-size: 14px; padding: 4px 12px; border-radius: 8px; color: #fff; }
+  .pb-pyq { background: #07c160; }
   .pb-xhs { background: #fe2c55; } .pb-x { background: #111; }
   .pb-threads { background: #0a7cff; } .pb-douyin { background: #161823; }
   .plat-cadence { font-size: 12px; color: var(--dim); }
@@ -108,7 +109,12 @@
       <div id="coreAngle" class="core-angle" style="display:none;"></div>
     </div>
 
+    <div style="display:flex;gap:10px;align-items:center;margin-top:14px;margin-bottom:4px;">
+      <button id="previewAllBtn" class="gen-btn" style="padding:9px 22px;font-size:13px;background:#1d1d1f;">👁 全部平台最终呈现预览</button>
+      <span class="muted" style="font-size:12px;">编辑在下方各卡片改完点保存，再刷新预览</span>
+    </div>
     <div id="platGrid" class="plat-grid"></div>
+    <div id="allPreview" class="plat-grid" style="display:none;"></div>
 
     <!-- ============ 今日运营任务卡 ============ -->
     <div class="section-block">
@@ -136,15 +142,33 @@
       <div id="oppGrid" class="plat-grid" style="margin-top:14px;"></div>
     </div>
 
-    <!-- ============ 自动排期 ============ -->
+    <!-- ============ 选题日历 ============ -->
     <div class="section-block">
-      <div class="section-title">发布排期（由稿件库自动生成）</div>
-      <div class="section-sub" id="schSub">排期 = 稿件库里的选题：小红书旧稿待同步的最优先（按赞数排序），其次已生成待发布、新选题。发布位：小红书周二/周五晚 · 抖音周三/周六午晚 · X周四/周日早 · Threads跟发。</div>
-      <div id="dailyRoutine" class="muted" style="font-size:12px;margin-bottom:10px;"></div>
-      <table class="sch-table">
-        <thead><tr><th style="width:110px;">日期</th><th style="width:170px;">平台 / 时间</th><th>选题</th><th style="width:90px;">内容线</th><th style="width:90px;">状态</th></tr></thead>
-        <tbody id="schBody"></tbody>
-      </table>
+      <div class="section-title">选题日历（只排新选题 · 已发布/旧稿不再排 · 周日复盘）</div>
+      <div class="section-sub" id="schSub">点「✓确认排期」把选题钉到日期，并自动存入稿件库草稿箱（去草稿箱一键生成四平台终稿）。</div>
+      <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:14px;"></div>
+      <div id="calConfirmed" style="margin-top:14px;"></div>
+      <style>
+        .cal-head { text-align:center;font-size:12px;color:var(--dim);padding:6px 0;font-weight:600; }
+        .cal-cell { min-height:104px;border:1px solid var(--border);border-radius:10px;padding:8px;background:var(--panel-solid);position:relative;font-size:12px;display:flex;flex-direction:column; }
+        .cal-cell.today { border:2px solid var(--accent-deep,#2f6f4f); }
+        .cal-cell.rest { background:var(--bg-tint,#eef2ee); }
+        .cal-cell.confirmed { border:2px solid #2f6f4f;background:#f2f8f4; }
+        .cal-cell .d { font-weight:700;color:var(--dim);font-size:11px; }
+        .cal-cell.today .d { color:var(--accent-deep,#2f6f4f); }
+        .cal-cell.confirmed .d::after { content:" ✓已确认";color:#2f6f4f;font-weight:700; }
+        .cal-cell .tp { margin-top:5px;line-height:1.45;font-weight:600;padding-right:2px;flex:1; }
+        .cal-cell .ln { align-self:flex-start;font-size:10px;padding:1px 7px;border-radius:6px;margin-top:4px; }
+        .cal-cell .fc { font-size:10px;color:var(--dim);margin-top:4px; }
+        .cal-cell .st { font-size:10px;color:var(--dim);margin-top:2px; }
+        .cal-btn { margin-top:5px;font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--accent-deep,#2f6f4f);background:#fff;color:var(--accent-deep,#2f6f4f);cursor:pointer; }
+        .cal-btn:hover { background:var(--accent-deep,#2f6f4f);color:#fff; }
+        .cal-btn.un { border-color:var(--dim);color:var(--dim); }
+        .ln-方法 { background:#e3efe7;color:#2f6f4f; } .ln-拆解 { background:#dcecf7;color:#1c5d8f; }
+        .ln-行业 { background:#fff3cd;color:#8a6d00; } .ln-工具 { background:#f0e6f6;color:#660874; }
+        .ln-流量 { background:#fde8e8;color:#b3261e; } .ln-收藏 { background:#e8f0fd;color:#3c5a99; }
+        .ln-人设 { background:#efe6dc;color:#8a5a2b; }
+      </style>
     </div>
 
   </div>
@@ -159,20 +183,22 @@ const PLATFORM_META = {
   "知乎": { cls: "pc-x", cadence: "搜索长尾 · 周四 21:00（同素材改回答）" },
   "即刻": { cls: "pb-threads", cadence: "人脉场 · 每天1-2条碎片" },
   "小红书": { cls: "pb-xhs", cadence: "轻轨卡片版 · 周二/周五 19:30 · 涨粉主力" },
+  "朋友圈": { cls: "pb-pyq", cadence: "私域预热 · 齐发日 21:45" },
   "X": { cls: "pb-x", cadence: "旧轨 · 周四/周日 10:30" },
-  "Threads": { cls: "pb-threads", cadence: "旧轨 · 跟发" },
+  "Threads": { cls: "pb-threads", cadence: "Threads 轻观点短帖（Meta）· 独立平台" },
   "抖音": { cls: "pb-douyin", cadence: "旧轨 · 口播二发" },
 };
 // 保存顺序与后端 all_specs 落库顺序一致
-const SAVE_ORDER = ["公众号", "知乎", "即刻", "小红书", "X", "Threads", "抖音"];
+const SAVE_ORDER = ["公众号", "知乎", "即刻", "小红书", "朋友圈", "X", "Threads", "抖音"];
 let currentResult = null;
 let currentGroup = null;
-let account = "Jocelyn";
+let account = "持穗Rohini";
 
-function toast(msg) {
+function toast(msg, isErr) {
   const t = $("toast");
   t.textContent = msg; t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 1800);
+  if (isErr) t.style.background = "#b3261e";
+  setTimeout(() => { t.classList.remove("show"); t.style.background = ""; }, 2400);
 }
 function setStatus(text, loading, isErr) {
   const line = $("statusLine");
@@ -243,8 +269,9 @@ $("xSaveBtn").addEventListener("click", async () => {
 async function init() {
   try {
     const cfg = await (await fetch("/api/config")).json();
-    const accs = cfg.accounts || ["Jocelyn"];
-    $("accountSel").innerHTML = accs.map(a => `<option${a === "Jocelyn" ? " selected" : ""}>${a}</option>`).join("");
+    const accs = cfg.accounts || ["持穗Rohini"];
+    const def = accs.includes("持穗Rohini") ? "持穗Rohini" : accs[0];
+    $("accountSel").innerHTML = accs.map(a => `<option${a === def ? " selected" : ""}>${a}</option>`).join("");
     account = $("accountSel").value;
   } catch (e) {}
   $("accountSel").addEventListener("change", () => { account = $("accountSel").value; loadStock(); loadSchedule(); });
@@ -324,6 +351,7 @@ function platCard(plat, innerHtml) {
       <span class="plat-badge ${meta.cls}">${plat}</span>
       <span style="display:flex;align-items:center;gap:10px;">
         <span class="plat-cadence">${meta.cadence}</span>
+        <button class="copy-btn" onclick="previewPlat('${plat}')" title="看这个平台上的排版效果">📱 预览</button>
         <button class="copy-btn" onclick="savePlat('${plat}')" title="把修改保存回稿件库">保存</button>
         <button class="copy-btn" onclick="copyPlat('${plat}')">复制全部</button>
       </span>
@@ -334,7 +362,7 @@ function platCard(plat, innerHtml) {
 
 function renderResult(r) {
   if (r.core_angle) { $("coreAngle").style.display = "block"; $("coreAngle").textContent = "核心观点（各平台共用）：" + r.core_angle; }
-  const gzh = r["公众号"] || {}, zh = r["知乎"] || {}, jk = r["即刻"] || {};
+  const gzh = r["公众号"] || {}, zh = r["知乎"] || {}, jk = r["即刻"] || {}, pyq = r["朋友圈"] || {};
   const xhs = r["小红书"] || {}, x = r["X"] || {}, th = r["Threads"] || {}, dy = r["抖音"] || {};
   let html = "";
   if (r["公众号"]) html += platCard("公众号", `
@@ -358,9 +386,13 @@ function renderResult(r) {
       <label>标签</label><input type="text" id="xhsTags" value="${esc((xhs.tags || []).join(" "))}">
       <label>首评（完整拆解在公众号：持穗）</label><input type="text" id="xhsFc" value="${esc(xhs.first_comment)}">
     `);
+  if (r["朋友圈"]) html += platCard("朋友圈", `
+      <label>朋友圈文案（≤120字，两段内）</label><textarea id="pyqText" rows="5">${esc(pyq.text)}</textarea>
+      <label>自评（发出后1小时内自己评论）</label><input type="text" id="pyqCm" value="${esc(pyq.comment)}">
+    `);
   if (r["X"]) html += platCard("X", `
       <label>首条 hook（可独立传播）</label><textarea id="xHook" rows="3">${esc(x.hook)}</textarea>
-      <label>Thread 后续（每条≤280字符）</label><textarea id="xThread" rows="7">${esc((x.thread || []).map((t, i) => `${i + 2}/ ${t}`).join("\n\n"))}</textarea>
+      <label>后续推文（编号1/2/3…，每条≤280字符；这是X推文串，不是Threads平台）</label><textarea id="xThread" rows="7">${esc((x.thread || []).map((t, i) => `${i + 2}/ ${t}`).join("\n\n"))}</textarea>
       <label>Hashtags</label><input type="text" id="xTags" value="${esc((x.hashtags || []).join(" "))}">
     `);
   if (r["Threads"]) html += platCard("Threads", `
@@ -376,6 +408,128 @@ function renderResult(r) {
   $("platGrid").innerHTML = html;
 }
 
+// ---------- 平台排版预览（手机壳模拟） ----------
+function previewPlat(plat) {
+  const v = id => ($(id) ? $(id).value : "");
+  const esc2 = t => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>");
+  let inner = "";
+  if (plat === "小红书") {
+    const tags = (v("xhsTags") || "").split(/\s+/).filter(Boolean).map(t => `<span style="color:#13386c;font-weight:600;">${esc2(t)}</span>`).join("&nbsp;");
+    inner = `<div style="background:#fff;border-radius:0 0 12px 12px;padding:12px 16px 20px;">
+      <div style="font-size:19px;font-weight:700;line-height:1.45;margin-bottom:10px;">${esc2(v("xhsTitle"))}</div>
+      <div style="background:#eee;height:300px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:13px;">配图位（你手动配）</div>
+      <div style="font-size:15px;line-height:1.8;color:#333;margin-top:12px;">${esc2(v("xhsBody"))}</div>
+      <div style="margin-top:10px;font-size:14px;">${tags}</div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f0;color:#666;font-size:12px;">首评：${esc2(v("xhsFc"))}</div>
+    </div>`;
+  } else if (plat === "公众号") {
+    inner = `<div style="background:#fff;padding:22px 18px;">
+      <div style="font-size:21px;font-weight:700;line-height:1.5;">${esc2(v("gzhTitle"))}</div>
+      <div style="color:#bbb;font-size:13px;margin:10px 0 4px;">持穗/Rohini · 今天</div>
+      <div style="font-size:16px;line-height:2;color:#3f3f3f;text-align:justify;">${esc2(v("gzhBody"))}</div>
+    </div>`;
+  } else if (plat === "知乎") {
+    inner = `<div style="background:#fff;padding:16px;">
+      <div style="font-size:17px;font-weight:700;line-height:1.5;color:#121212;">${esc2(v("zhTitle"))}</div>
+      <div style="display:flex;gap:8px;align-items:center;margin:12px 0;"><div style="width:28px;height:28px;border-radius:50%;background:#660874;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;">穗</div><span style="font-size:13px;color:#444;">持穗/Rohini · AI圈增长与商业化</span></div>
+      <div style="font-size:15px;line-height:1.95;color:#1a1a1a;">${esc2(v("zhBody"))}</div>
+    </div>`;
+  } else if (plat === "即刻") {
+    inner = `<div style="background:#fff;padding:16px;">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;"><div style="width:32px;height:32px;border-radius:50%;background:#660874;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;">穗</div><b style="font-size:14px;">持穗</b></div>
+      <div style="font-size:15px;line-height:1.8;color:#222;">${esc2(v("jkP0"))}</div>
+      <div style="color:#88f;margin-top:10px;font-size:12px;">转发 · 评论 · 赞</div>
+    </div>`;
+  } else if (plat === "朋友圈") {
+    inner = `<div style="background:#ededed;padding:14px;">
+      <div style="background:#fff;border-radius:6px;padding:12px;">
+        <div style="display:flex;gap:8px;margin-bottom:8px;"><div style="width:34px;height:34px;border-radius:4px;background:#660874;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;">穗</div><b style="font-size:14px;color:#576b95;">持穗</b></div>
+        <div style="font-size:15px;line-height:1.7;color:#222;">${esc2(v("pyqText"))}</div>
+        ${v("pyqCm") ? `<div style="background:#f7f7f7;margin-top:10px;padding:6px 8px;font-size:13px;color:#222;"><b style="color:#576b95;">持穗：</b>${esc2(v("pyqCm"))}</div>` : ""}
+      </div></div>`;
+  } else if (plat === "抖音") {
+    inner = `<div style="background:#111;color:#fff;padding:18px 16px;min-height:420px;position:relative;">
+      <div style="background:#222;height:340px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#555;font-size:13px;">视频位（按拍摄提示拍）</div>
+      <div style="margin-top:14px;font-size:14px;line-height:1.8;"><b>@持穗</b><br>${esc2(v("dyCap"))}</div>
+      <div style="position:absolute;right:16px;bottom:200px;width:170px;font-size:13px;line-height:1.7;background:rgba(0,0,0,.45);padding:8px;border-radius:6px;">${esc2(v("dyScript")).slice(0, 300)}</div>
+    </div>`;
+  }
+  const mask = document.createElement("div");
+  mask.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:center;justify-content:center;";
+  mask.onclick = () => mask.remove();
+  mask.innerHTML = `<div style="width:390px;max-height:82vh;overflow:auto;border-radius:26px;border:6px solid #1d1d1f;box-shadow:0 20px 60px rgba(0,0,0,.5);background:#f5f5f5;" onclick="event.stopPropagation()">
+    <div style="text-align:center;padding:8px;background:#f5f5f5;font-size:12px;color:#999;">${plat} · 排版预览（近似效果）</div>
+    ${inner}
+  </div>`;
+  document.body.appendChild(mask);
+}
+
+// ---------- 全部平台最终呈现预览 ----------
+function buildPreviewInner(plat) {
+  const v = id => ($(id) ? $(id).value : "");
+  const esc2 = t => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>");
+  if (plat === "小红书") {
+    const tags = (v("xhsTags") || "").split(/\s+/).filter(Boolean).map(t => `<span style="color:#13386c;font-weight:600;">${esc2(t)}</span>`).join("&nbsp;");
+    return `<div style="background:#fff;padding:12px 14px 18px;">
+      <div style="font-size:18px;font-weight:700;line-height:1.45;margin-bottom:8px;">${esc2(v("xhsTitle"))}</div>
+      <div style="background:#eee;height:260px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:12px;">配图位</div>
+      <div style="font-size:14px;line-height:1.8;color:#333;margin-top:10px;">${esc2(v("xhsBody"))}</div>
+      <div style="margin-top:8px;font-size:13px;">${tags}</div>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #f0f0f0;color:#888;font-size:11px;">首评：${esc2(v("xhsFc"))}</div></div>`;
+  }
+  if (plat === "公众号") {
+    return `<div style="background:#fff;padding:18px 14px;">
+      <div style="font-size:19px;font-weight:700;line-height:1.5;">${esc2(v("gzhTitle"))}</div>
+      <div style="color:#bbb;font-size:12px;margin:8px 0;">持穗/Rohini · 今天</div>
+      <div style="font-size:14px;line-height:1.95;color:#3f3f3f;text-align:justify;">${esc2(v("gzhBody"))}</div></div>`;
+  }
+  if (plat === "知乎") {
+    return `<div style="background:#fff;padding:14px;">
+      <div style="font-size:16px;font-weight:700;line-height:1.5;">${esc2(v("zhTitle"))}</div>
+      <div style="display:flex;gap:6px;align-items:center;margin:10px 0;"><div style="width:24px;height:24px;border-radius:50%;background:#660874;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;">穗</div><span style="font-size:12px;color:#444;">持穗/Rohini</span></div>
+      <div style="font-size:13.5px;line-height:1.9;">${esc2(v("zhBody"))}</div></div>`;
+  }
+  if (plat === "即刻") {
+    return `<div style="background:#fff;padding:14px;">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;"><div style="width:28px;height:28px;border-radius:50%;background:#660874;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;">穗</div><b style="font-size:13px;">持穗</b></div>
+      <div style="font-size:14px;line-height:1.8;color:#222;">${esc2(v("jkP0"))}</div>
+      <div style="color:#88f;margin-top:8px;font-size:11px;">转发 · 评论 · 赞</div></div>`;
+  }
+  if (plat === "朋友圈") {
+    return `<div style="background:#ededed;padding:12px;">
+      <div style="background:#fff;border-radius:6px;padding:10px;">
+        <div style="display:flex;gap:6px;margin-bottom:6px;"><div style="width:30px;height:30px;border-radius:4px;background:#660874;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;">穗</div><b style="font-size:13px;color:#576b95;">持穗</b></div>
+        <div style="font-size:14px;line-height:1.7;color:#222;">${esc2(v("pyqText"))}</div>
+        ${v("pyqCm") ? `<div style="background:#f7f7f7;margin-top:8px;padding:5px 7px;font-size:12px;"><b style="color:#576b95;">持穗：</b>${esc2(v("pyqCm"))}</div>` : ""}</div></div>`;
+  }
+  if (plat === "抖音") {
+    return `<div style="background:#111;color:#fff;padding:14px;min-height:340px;position:relative;">
+      <div style="background:#222;height:280px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#555;font-size:12px;">视频位</div>
+      <div style="margin-top:10px;font-size:13px;line-height:1.7;"><b>@持穗</b><br>${esc2(v("dyCap"))}</div>
+      <div style="position:absolute;right:12px;bottom:170px;width:150px;font-size:12px;line-height:1.65;background:rgba(0,0,0,.45);padding:6px;border-radius:6px;">${esc2(v("dyScript")).slice(0, 260)}</div></div>`;
+  }
+  return "";
+}
+function previewAll() {
+  const box = $("allPreview");
+  if (box.style.display === "grid") { box.style.display = "none"; return; }
+  const plats = ["小红书", "公众号", "知乎", "即刻", "朋友圈", "抖音"].filter(p => document.querySelector(`#platGrid [id]`) && platHasFields(p));
+  box.innerHTML = plats.map(p => `
+    <div>
+      <div style="text-align:center;font-size:12px;color:var(--dim);margin-bottom:6px;">${p}</div>
+      <div style="max-height:560px;overflow:auto;border-radius:20px;border:5px solid #1d1d1f;background:#f5f5f5;">${buildPreviewInner(p)}</div>
+    </div>`).join("");
+  box.style.display = plats.length ? "grid" : "none";
+  if (!plats.length) toast("当前稿没有可预览的平台内容");
+}
+function platHasFields(p) {
+  const ids = { "小红书": ["xhsTitle", "xhsBody"], "公众号": ["gzhBody"], "知乎": ["zhBody"], "即刻": ["jkP0"], "朋友圈": ["pyqText"], "抖音": ["dyScript"] };
+  return (ids[p] || []).every(i => !!$(i)) && $(ids[p][0]) && $(ids[p][0]).value.trim() !== "";
+}
+if (document.getElementById("previewAllBtn")) {
+  document.getElementById("previewAllBtn").addEventListener("click", previewAll);
+}
+
 function platFullText(plat) {
   if (!currentResult) return "";
   const v = id => ($(id) ? $(id).value : "");
@@ -385,6 +539,7 @@ function platFullText(plat) {
   if (plat === "小红书") return `${v("xhsTitle")}\n\n${v("xhsCards")}\n\n${v("xhsBody")}\n\n${v("xhsTags")}\n\n【首评】${v("xhsFc")}`;
   if (plat === "X") return `${v("xHook")}\n\n${v("xThread")}\n\n${v("xTags")}`;
   if (plat === "Threads") return `${v("thP1")}\n\n— — —\n\n${v("thP2")}`;
+  if (plat === "朋友圈") return `${v("pyqText")}\n\n【自评】${v("pyqCm")}`;
   if (plat === "抖音") return `【口播】${v("dyScript")}\n\n【拍摄】${v("dyTips")}\n\n【描述区】${v("dyCap")}\n${v("dyTags")}`;
   return "";
 }
@@ -401,6 +556,7 @@ function collectPlat(plat) {
   if (plat === "小红书") return { title: v("xhsTitle"), body: v("xhsBody"), cards: v("xhsCards").split("\n").filter(Boolean), tags: v("xhsTags").split(/\s+/).filter(Boolean), first_comment: v("xhsFc") };
   if (plat === "X") return { body: `${v("xHook")}\n\n${v("xThread")}`, tags: v("xTags").split(/\s+/).filter(Boolean) };
   if (plat === "Threads") return { body: `${v("thP1")}\n— — —\n${v("thP2")}` };
+  if (plat === "朋友圈") return { body: v("pyqText"), moment_comment: v("pyqCm") };
   if (plat === "抖音") return { body: v("dyScript"), film_tips: v("dyTips"), caption: v("dyCap"), tags: v("dyTags").split(/\s+/).filter(Boolean) };
   return {};
 }
@@ -417,7 +573,8 @@ async function savePlat(plat) {
 
 // ---------- 从稿件库/URL 载入已生成组 ----------
 async function loadGroup(groupId) {
-  const posts = await (await fetch("/api/posts?account=" + encodeURIComponent(account))).json();
+  // 组视图跨账号取稿（组可能属于任何账号，不随下拉框过滤）
+  const posts = await (await fetch("/api/posts")).json();
   const group = posts.filter(p => p.group_id === groupId);
   if (!group.length) { setStatus("找不到该组稿件", false, true); return; }
   savedIds = {};
@@ -431,6 +588,8 @@ async function loadGroup(groupId) {
   if (gzh.body) result["公众号"] = { title: gzh.title, abstract: gzh.abstract || "", body: gzh.body, tags: gzh.tags || [] };
   if (zh.body) result["知乎"] = { title: zh.title, body: zh.body, tags: zh.tags || [] };
   if (jk.body) result["即刻"] = { posts: jkParts };
+  const pyqP = get("朋友圈");
+  if (pyqP.body) result["朋友圈"] = { text: pyqP.body, comment: pyqP.moment_comment || "" };
   if (xhs.body || xhs.title) result["小红书"] = {
     title: xhs.title, body: xhs.body,
     cards: xhs.cards && xhs.cards.length ? xhs.cards : (xhs.cards_text || "").split("\n").filter(Boolean),
@@ -439,6 +598,24 @@ async function loadGroup(groupId) {
   if (th.body) result["Threads"] = { posts: (th.body || "").split(/— — —/).map(s => s.trim()) };
   if (dy.body) result["抖音"] = { script: dy.body || "", film_tips: dy.film_tips || "", caption: dy.caption || "", hashtags: dy.tags || [] };
   renderResult(result);
+  // 配图 + 发布时刻表（发布包同步进库的成品直接可视化）
+  const xhsPost = get("小红书");
+  let extra = "";
+  if (xhsPost.images && xhsPost.images.length) {
+    extra += `<div class="plat-card" style="grid-column:1/-1;">
+      <div class="plat-head"><span class="plat-badge pb-xhs">配图（${xhsPost.images.length} 张成品卡，点击看大图）</span></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        ${xhsPost.images.map((u, i) => `<a href="${u}" target="_blank" title="card-0${i + 1}"><img src="${u}" style="width:150px;border-radius:10px;border:1px solid var(--border);"></a>`).join("")}
+      </div></div>`;
+  }
+  if (xhsPost.publish_plan) {
+    extra += `<div class="plat-card" style="grid-column:1/-1;">
+      <div class="plat-head"><span class="plat-badge pb-douyin">今日齐发时刻表</span></div>
+      ${xhsPost.publish_plan.map(s => `<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <b style="min-width:46px;">${s.time}</b><span style="min-width:52px;">${s.platform}</span><span>${esc(s.action)}</span></div>`).join("")}
+      <div class="muted" style="font-size:12px;margin-top:8px;">首评：${esc(xhsPost.first_comment || "（见小红书卡片）")}</div></div>`;
+  }
+  if (extra) $("platGrid").insertAdjacentHTML("beforeend", extra);
   setStatus("已载入稿件库终稿，直接修改后点「保存」", false, false);
 }
 
@@ -460,36 +637,73 @@ async function loadOpportunities() {
   } catch (e) {}
 }
 
-// ---------- 排期 ----------
+// ---------- 选题日历 ----------
+window._calDays = [];
 async function loadSchedule() {
   try {
     const d = await (await fetch("/api/studio/schedule?account=" + encodeURIComponent(account))).json();
-    $("dailyRoutine").textContent = d.daily_routine ? "每日例行：" + d.daily_routine : "";
-    const stateCls = s => s === "已发布" ? "st-published" : (s ? "st-generated" : "st-pending");
-    const stateTxt = s => s === "已发布" ? "已发布" : (s ? "已生成" : "待生产");
-    let html = "";
-    for (const w of d.weeks || []) {
-      html += `<tr class="sch-week-row"><td colspan="5">第 ${w.week} 周（${w.monday} 起）</td></tr>`;
-      for (const day of w.days || []) {
-        if (!(day.items || []).length) {
-          if (day.routine) html += `<tr><td>${day.date.slice(5)} ${day.weekday}</td><td colspan="4" class="muted">${day.routine}</td></tr>`;
-          continue;
-        }
-        day.items.forEach((it, idx) => {
-          html += `<tr>
-            <td>${idx === 0 ? day.date.slice(5) + " " + day.weekday : ""}</td>
-            <td><span class="sch-plat ${PLATFORM_META[it.platform] ? PLATFORM_META[it.platform].cls : ""}">${it.platform}</span>${it.time}</td>
-            <td>${esc(it.topic)}${it.source === "选题攻略" ? ' <span class="muted" style="font-size:11px;">·攻略</span>' : ""}</td>
-            <td class="muted">${it.content_line || ""}</td>
-            <td><span class="state-tag ${stateCls(it.state)}">${stateTxt(it.state)}</span></td>
-          </tr>`;
-        });
-      }
-    }
-    $("schBody").innerHTML = html || '<tr><td colspan="5" class="muted">暂无排期数据</td></tr>';
-  } catch (e) {
-    $("schBody").innerHTML = '<tr><td colspan="5" class="muted">排期加载失败</td></tr>';
-  }
+    window._calDays = d.days || [];
+    const lineCls = l => "ln-" + (l || "").slice(0, 2);
+    const heads = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+    let html = heads.map(h => `<div class="cal-head">${h}</div>`).join("");
+    const first = new Date(d.days[0].date + "T00:00:00");
+    for (let i = 0; i < (first.getDay() + 6) % 7; i++) html += "<div></div>";
+    const todayStr = new Date().toISOString().slice(0, 10);
+    html += d.days.map((x, i) => {
+      const confBtn = (!x.rest && !x.confirmed && !x.topic.includes("选题用完"))
+        ? `<button class="cal-btn" onclick="confirmSchedule(${i})">✓确认排期</button>` : "";
+      const unBtn = x.confirmed ? `<button class="cal-btn un" onclick="unconfirmSchedule(${i})">取消</button>` : "";
+      return `<div class="cal-cell ${x.date === todayStr ? "today" : ""} ${x.rest ? "rest" : ""} ${x.confirmed ? "confirmed" : ""}">
+        <div class="d">${(+x.date.slice(8))}日${x.rest ? " · 复盘" : ""}</div>
+        <div class="tp">${esc(x.topic.slice(0, 40))}</div>
+        ${x.line ? `<span class="ln ${lineCls(x.line)}">${esc(x.line)}</span>` : ""}
+        <div class="fc">${esc(x.focus || "")}</div>
+        ${x.state ? `<div class="st">${x.state}</div>` : ""}
+        ${confBtn}${unBtn}
+      </div>`;
+    }).join("");
+    $("calGrid").innerHTML = html;
+    $("schSub").textContent = `浮动队列 ${d.queue_total} 个新选题 · 已确认 ${d.confirmed_total || 0} 天 · ${d.line_rotation}`;
+    // 已确认排期清单（确认即入草稿箱）
+    const confs = d.confirmed || [];
+    $("calConfirmed").innerHTML = confs.length ? `
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;">📌 已确认排期（${confs.length} 天 · 已存入草稿箱，去稿件库一键生成终稿）</div>
+      ${confs.map(c => `<div style="display:flex;gap:10px;align-items:baseline;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);">
+        <b style="min-width:96px;color:var(--accent-deep,#2f6f4f);">${c.date.slice(5)}</b>
+        <span style="flex:1;font-weight:600;">${esc(c.topic)}</span>
+        ${c.line ? `<span class="badge b-line">${esc(c.line)}</span>` : ""}
+        <span class="muted" style="font-size:11px;">已入草稿箱</span>
+      </div>`).join("")}
+      <a class="act-btn" style="text-decoration:none;margin-top:8px;display:inline-block;" href="index.html">→ 去稿件库草稿箱生成/发布</a>`
+      : '<div class="muted" style="font-size:12px;">还没有确认任何排期 — 在日历点「✓确认排期」，选题会钉在日期上并进入草稿箱。</div>';
+  } catch (e) { $("calGrid").innerHTML = '<div class="muted">日历加载失败</div>'; }
+}
+
+async function confirmSchedule(i) {
+  const x = window._calDays[i];
+  if (!x) return;
+  try {
+    const r = await (await fetch("/api/studio/schedule/confirm", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ account, date: x.date, topic: x.topic, line: x.line }),
+    })).json();
+    if (r.error) { toast(r.error, true); return; }
+    toast(`已确认 ${x.date.slice(5)} 排期，稿件已存入草稿箱 ✓`);
+    loadSchedule();
+  } catch (e) { toast("确认失败: " + e.message, true); }
+}
+
+async function unconfirmSchedule(i) {
+  const x = window._calDays[i];
+  if (!x) return;
+  try {
+    await fetch("/api/studio/schedule/unconfirm", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ account, date: x.date }),
+    });
+    toast("已取消确认，日期释放回浮动队列");
+    loadSchedule();
+  } catch (e) { toast("取消失败: " + e.message, true); }
 }
 
 init();
